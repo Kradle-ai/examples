@@ -1,0 +1,8 @@
+{
+  "values": [
+    "custom:update_timer",
+    "custom:update_score",
+    "custom:update_participants",
+    "custom:update_arena"
+  ]
+} 
