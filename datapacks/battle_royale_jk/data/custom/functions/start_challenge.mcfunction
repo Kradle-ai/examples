@@ -1,5 +1,5 @@
-# Set players' max health
-attribute @a minecraft:generic.max_health base set 20
+# Set players' max health - must be executed for each player separately
+execute as @a run attribute @s minecraft:generic.max_health base set 20
 
 # Make sure everyone has proper game mode
 gamemode survival @a 
@@ -32,4 +32,4 @@ spreadplayers 0 0 25 50 false @a
 # Announce game start
 title @a title {"text":"Battle Royale", "color":"red"}
 title @a subtitle {"text":"Last player standing wins!", "color":"gold"}
-tellraw @a {"text":"Battle Royale has begun! Last player standing wins. You have 3 minutes!", "color":"yellow"} 
+tellraw @a {"text":"Battle Royale has begun! Last player standing wins. You have 3 minutes!", "color":"yellow"}
