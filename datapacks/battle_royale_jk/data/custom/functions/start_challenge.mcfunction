@@ -1,3 +1,9 @@
+# Set players' max health
+attribute @a minecraft:generic.max_health base set 20
+
+# Make sure everyone has proper game mode
+gamemode survival @a 
+
 # Initialize objectives
 scoreboard objectives add game_score dummy
 scoreboard players set @a game_score 0
