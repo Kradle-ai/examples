@@ -203,6 +203,7 @@ class LLMBasedAgent(MinecraftAgent):
         if response["choices"]:
             content = response["choices"][0]["message"]["content"]
         else:
+            print(f"No response from LLM: {response}")
             content = "I'm sorry, I'm having trouble generating a response. Please try again later."
 
         # logging what we sent and recieved to the Kradle dashboard
