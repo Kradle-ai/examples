@@ -73,18 +73,28 @@ class LLMBasedAgent(MinecraftAgent):
         self.memory.commands = challenge_info.commands
         self.memory.js_functions = challenge_info.js_functions
 
+        # storing in memory if you're using a Redis Memory, and want to make your agent resilient to restarts
+        self.memory.persona = PERSONA
+        self.memory.model = MODEL
+        self.memory.respond_with_code = RESPOND_WITH_CODE
+        self.memory.delay_after_action = DELAY_AFTER_ACTION
+
+
         print(f"Initializing agent for participant ID: {self.participant_id} with username: {self.username}")
-        print(f"Persona: {PERSONA}")
-        print(f"Model: {MODEL}")
+        print(f"Persona: {self.memory.persona}")
+        print(f"Model: {self.memory.model}")
+        print(f"Respond with code: {self.memory.respond_with_code}")
+        print(f"Delay after action: {self.memory.delay_after_action}")
 
         # self.log() lets us log information to the Kradle dashboard (left pane in the session viewer)
-        # self.log(
-        #     {
-        #         "persona": PERSONA,
-        #         "model": MODEL,
-        #         "respond_with_code": RESPOND_WITH_CODE
-        #     }
-        # )
+        self.log(
+             {
+                 "persona": self.memory.persona,
+                 "model": self.memory.model,
+                 "respond_with_code": self.memory.respond_with_code,
+                 "delay_after_action": self.memory.delay_after_action,
+             }
+         )
 
         # tell Kradle what we want to listen to
         return {"listenTo": [MinecraftEvent.MESSAGE, MinecraftEvent.COMMAND_EXECUTED]}
@@ -145,7 +155,7 @@ class LLMBasedAgent(MinecraftAgent):
 
     # this function builds the system prompt for the agent
     def build_system_prompt(self, observation):
-        if RESPOND_WITH_CODE:
+        if self.memory.respond_with_code:
             prompt = coding_prompt
         else:
             prompt = conversing_prompt
@@ -153,11 +163,11 @@ class LLMBasedAgent(MinecraftAgent):
         # load task, persona, agent_modes, and commands from memory to build the prompt
         prompt = prompt.replace("$NAME", observation.name)
         prompt = prompt.replace("$TASK", self.memory.task)
-        prompt = prompt.replace("$PERSONA", PERSONA)
+        prompt = prompt.replace("$PERSONA", self.memory.persona)
         prompt = prompt.replace("$AGENT_MODE", str(self.memory.agent_modes))
 
         # we can respond with javascript or text
-        if RESPOND_WITH_CODE:
+        if self.memory.respond_with_code:
             prompt = prompt.replace("$CODE_DOCS", str(self.memory.js_functions))
             prompt = prompt.replace("$EXAMPLES", str(coding_examples))
         else:
@@ -184,7 +194,7 @@ class LLMBasedAgent(MinecraftAgent):
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
-            json={"model": MODEL, "messages": llm_prompt},
+            json={"model": self.memory.model, "messages": llm_prompt},
             timeout=30,
         ).json()
 
@@ -196,22 +206,22 @@ class LLMBasedAgent(MinecraftAgent):
             content = "I'm sorry, I'm having trouble generating a response. Please try again later."
 
         # logging what we sent and recieved to the Kradle dashboard
-        # self.log(
-        #     {
-        #         "prompt": llm_prompt,
-        #         "model": MODEL,
-        #         "response": content
-        #     }
-        # )
+        self.log(
+             {
+                 "prompt": llm_prompt,
+                 "model": self.memory.model,
+                 "response": content
+             }
+        )
 
         # append to the message history
         self.memory.llm_transcript.extend(
             [{"role": "user", "content": observation_summary}, {"role": "assistant", "content": content}]
         )
 
-        if RESPOND_WITH_CODE:
-            return {"code": content, "delay": DELAY_AFTER_ACTION}
-        return {"command": content, "delay": DELAY_AFTER_ACTION}
+        if self.memory.respond_with_code:
+            return {"code": content, "delay": self.memory.delay_after_action}
+        return {"command": content, "delay": self.memory.delay_after_action}
 
 
 # finally, lets serve our agent!
