@@ -4,8 +4,6 @@
 from kradle import (
     AgentManager,
     MinecraftAgent,
-    ChallengeParticipant,
-    KradleAPI
 )
 from kradle.models import MinecraftEvent
 from dotenv import load_dotenv
