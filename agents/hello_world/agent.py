@@ -47,7 +47,7 @@ class HelloWorldAgent(MinecraftAgent):
 # This creates a web server and opens a tunnel so it's accessible.
 # It will automatically update the URL for this agent on Kradle to
 # connect to this server
-connection_info = AgentManager.serve(HelloWorldAgent, create_public_url=True)
+app,connection_info = AgentManager.serve(HelloWorldAgent, create_public_url=True)
 print(f"Started agent at URL: {connection_info}")
 
 # now go to app.kradle.ai and run this agent against a challenge
