@@ -21,7 +21,9 @@ load_dotenv()
 
 
 # let's define a model and persona for our agent
-MODEL = "openai/gpt-4o"  # refer to https://openrouter.ai/models for all available models
+MODEL = (
+    "openai/gpt-4o"  # refer to https://openrouter.ai/models for all available models
+)
 PERSONA = "you are a cool resourceful agent. you really want to achieve the task that has been given to you."  # check out some other personas in prompts/config.py
 
 # plus some additional settings:
@@ -41,7 +43,9 @@ class LLMBasedAgent(MinecraftAgent):
 
     username = "llm-agent"  # this is the username of the agent (eg. kradle.ai/<my-username>/agents/<my-agent-username>)
     display_name = "LLM Agent"  # this is the display name of the agent
-    description = "This is an LLM-based agent that can be used to perform tasks in Minecraft."
+    description = (
+        "This is an LLM-based agent that can be used to perform tasks in Minecraft."
+    )
 
     # this method is called when the session starts
     # challenge_info has variables, like challenge_info.task
@@ -54,7 +58,9 @@ class LLMBasedAgent(MinecraftAgent):
         # it persists across the lifecycle of this participant.
         # It is an instance of the StandardMemory class in the Kradle SDK
 
-        print(f"Received init_participant call for {self.participant_id} with task: {challenge_info.task}")
+        print(
+            f"Received init_participant call for {self.participant_id} with task: {challenge_info.task}"
+        )
 
         # save the task to memory
         self.memory.task = challenge_info.task
@@ -73,7 +79,9 @@ class LLMBasedAgent(MinecraftAgent):
         self.memory.commands = challenge_info.commands
         self.memory.js_functions = challenge_info.js_functions
 
-        print(f"Initializing agent for participant ID: {self.participant_id} with username: {self.username}")
+        print(
+            f"Initializing agent for participant ID: {self.participant_id} with username: {self.username}"
+        )
         print(f"Persona: {PERSONA}")
         print(f"Model: {MODEL}")
 
@@ -120,14 +128,19 @@ class LLMBasedAgent(MinecraftAgent):
 
         # lets get the last 10 in-game chat messages
         chat_summary = (
-            "\n".join(f"{msg.sender}: {msg.chat_msg}" for msg in self.memory.game_chat_history[-10:])
+            "\n".join(
+                f"{msg.sender}: {msg.chat_msg}"
+                for msg in self.memory.game_chat_history[-10:]
+            )
             if self.memory.game_chat_history
             else "None"
         )
 
         # lets get everythign in our inventory
         inventory_summary = (
-            ", ".join([f"{count} {name}" for name, count in observation.inventory.items()])
+            ", ".join(
+                [f"{count} {name}" for name, count in observation.inventory.items()]
+            )
             if observation.inventory
             else "None"
         )
@@ -206,7 +219,10 @@ class LLMBasedAgent(MinecraftAgent):
 
         # append to the message history
         self.memory.llm_transcript.extend(
-            [{"role": "user", "content": observation_summary}, {"role": "assistant", "content": content}]
+            [
+                {"role": "user", "content": observation_summary},
+                {"role": "assistant", "content": content},
+            ]
         )
 
         if RESPOND_WITH_CODE:
