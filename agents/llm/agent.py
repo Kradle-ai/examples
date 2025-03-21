@@ -125,18 +125,10 @@ class LLMBasedAgent(MinecraftAgent):
     def __format_observation(self, observation):
 
         # python array operation to extend/append to the in-game chat history
-        if hasattr(observation, "chat_messages") and observation.chat_messages:
-            self.memory.game_chat_history.extend(observation.chat_messages)
+        self.memory.game_chat_history.extend(observation.chat_messages)
 
         print(f"Minecraft Chat History: {self.memory.game_chat_history}")
-
-        # lets get the last 10 in-game chat messages
-        chat_summary = (
-            "\n".join(f"{msg.sender}: {msg.chat_msg}" for msg in self.memory.game_chat_history[-10:])
-            if self.memory.game_chat_history
-            else "None"
-        )
-
+        
         # lets get everythign in our inventory
         inventory_summary = (
             ", ".join([f"{count} {name}" for name, count in observation.inventory.items()])
@@ -148,7 +140,8 @@ class LLMBasedAgent(MinecraftAgent):
         return (
             f"Event received: {observation.event if observation.event else 'None'}\n\n"
             f"{observation.output if observation.output else 'Output: None'}\n\n"
-            f"Chat: {chat_summary}\n\n"
+            f"Position: {observation.position}\n\n"
+            f"Latest Chat: {observation.chat_messages}\n\n"
             f"Visible Players: {', '.join(observation.players) if observation.players else 'None'}\n\n"
             f"Visible Blocks: {', '.join(observation.blocks) if observation.blocks else 'None'}\n\n"
             f"Inventory: {inventory_summary}\n\n"
