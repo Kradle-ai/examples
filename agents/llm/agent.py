@@ -27,7 +27,7 @@ load_dotenv()
 #the max number of times the LLM will retry to generate a valid response
 MAX_RETRIES = 3
 # let's define a model and persona for our agent
-MODEL = "google/gemini-2.0-flash-001" #"google/gemma-3-27b-it:free" #"openai/gpt-4o"  # refer to https://openrouter.ai/models for all available models
+MODEL = "google/gemini-2.0-flash-001" # refer to https://openrouter.ai/models for all available models
 PERSONA = "you are a cool resourceful agent. you really want to achieve the task that has been given to you."  # check out some other personas in prompts/config.py
 
 # plus some additional settings:
