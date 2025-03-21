@@ -18,6 +18,8 @@ from prompts.config import (
     creative_mode_prompt,
     skills_prompt,
     examples_prompt,
+    persona_prompt,
+    agent_prompt,
 )
 
 load_dotenv()
@@ -97,7 +99,7 @@ class LLMBasedAgent(MinecraftAgent):
 
         # tell Kradle what we want to listen to
     
-        return InitParticipantResponse({"listenTo": [MinecraftEvent.CHAT, MinecraftEvent.COMMAND_EXECUTED]})
+        return InitParticipantResponse({"listenTo": [MinecraftEvent.CHAT, MinecraftEvent.COMMAND_EXECUTED, MinecraftEvent.MESSAGE, MinecraftEvent.IDLE]})
 
     # this is called when an event happens
     # we return our next action
@@ -128,7 +130,7 @@ class LLMBasedAgent(MinecraftAgent):
         self.memory.game_chat_history.extend(observation.chat_messages)
 
         print(f"Minecraft Chat History: {self.memory.game_chat_history}")
-        
+
         # lets get everythign in our inventory
         inventory_summary = (
             ", ".join([f"{count} {name}" for name, count in observation.inventory.items()])
@@ -158,7 +160,6 @@ class LLMBasedAgent(MinecraftAgent):
         # load task, persona, agent_modes, and commands from memory to build the prompt
         prompt = prompt.replace("$NAME", observation.name)
         prompt = prompt.replace("$TASK", self.memory.task)
-        prompt = prompt.replace("$PERSONA", self.memory.persona)
         prompt = prompt.replace("$AGENT_MODE", str(self.memory.agent_modes))
         
         if self.memory.agent_modes["mcmode"] == "creative":
@@ -172,9 +173,16 @@ class LLMBasedAgent(MinecraftAgent):
         prompt = prompt.replace("$CODE_DOCS", str(self.memory.js_functions))
         system_prompt.append({"role": "system", "content": prompt})
 
+        prompt = agent_prompt
+        prompt = prompt.replace("$AGENT_MODE", str(self.memory.agent_modes))
+        system_prompt.append({"role": "system", "content": prompt})
 
         prompt = examples_prompt
         prompt = prompt.replace("$EXAMPLES", str(coding_examples))
+        system_prompt.append({"role": "system", "content": prompt})
+
+        prompt = persona_prompt
+        prompt = prompt.replace("$PERSONA", self.memory.persona)
         system_prompt.append({"role": "system", "content": prompt})
 
         return system_prompt
@@ -184,7 +192,7 @@ class LLMBasedAgent(MinecraftAgent):
         for p in prompt:
             print("--------------------------------")
             print("---" + p["role"] + "---")
-            print(p["content"][:1000] + "..." if len(p["content"]) > 1000 else p["content"])
+            print(p["content"][:2000] + "..." if len(p["content"]) > 2000 else p["content"])
         print("---END PROMPT---")
 
     # send the prompt to the LLM and get the response
