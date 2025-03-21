@@ -187,12 +187,21 @@ class LLMBasedAgent(MinecraftAgent):
 
         return system_prompt
 
+    def __truncate_prompt(self, prompt):
+        truncated_prompt = []
+        for p in prompt:
+            truncated_p = p.copy()  # Create a shallow copy of the dict
+            if len(truncated_p["content"]) > 2000:
+                truncated_p["content"] = truncated_p["content"][:2000] + "..."
+            truncated_prompt.append(truncated_p)
+        return truncated_prompt
+
     def __print_prompt(self, prompt):
         print("---PROMPT---")
         for p in prompt:
             print("--------------------------------")
             print("---" + p["role"] + "---")
-            print(p["content"][:2000] + "..." if len(p["content"]) > 2000 else p["content"])
+            print(p["content"])
         print("---END PROMPT---")
 
     # send the prompt to the LLM and get the response
@@ -220,7 +229,9 @@ class LLMBasedAgent(MinecraftAgent):
         }
 
         print(f"using model: {self.memory.model}")
-        self.__print_prompt(llm_prompt)
+
+        truncated_prompt = self.__truncate_prompt(llm_prompt)
+        self.__print_prompt(truncated_prompt)
 
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -250,7 +261,7 @@ class LLMBasedAgent(MinecraftAgent):
         content, action, success, error_message = self.__process_llm_response(response)
 
         # logging what we sent and recieved to the Kradle dashboard
-        self.log({"prompt": llm_prompt, "model": self.memory.model, "response": content})
+        self.log({"prompt": truncated_prompt, "model": self.memory.model, "response": content})
 
         # append to the message history
         self.memory.llm_transcript.extend(
