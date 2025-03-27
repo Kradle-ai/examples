@@ -1,1 +1,4 @@
 .DS_Store
+/agents/llm/prompts/__pycache__
+/agents/llm/__pycache__
+/agents/llm/samples/__pycache__
