@@ -1,6 +1,14 @@
 module.exports = 
 {
   skills: {
+    'skills.acceptTrade': '/**\n' +
+      '         * Accept a trade from the given player.\n' +
+      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
+      '         * @param {string} source_player, the name of the player to accept the trade from.\n' +
+      '         * @returns {Promise<boolean>} true if the trade was accepted, false otherwise.\n' +
+      '         * @example\n' +
+      '         * await skills.acceptTrade(bot, "player_name");\n' +
+      '         **/\n',
     'skills.activateNearestBlock': '/**\n' +
       '         * Activate the nearest block of the given type.\n' +
       '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
@@ -53,6 +61,14 @@ module.exports =
       '         * let position = world.getPosition(bot);\n' +
       '         * await skills.breakBlockAt(bot, position.x, position.y - 1, position.x);\n' +
       '         **/\n',
+    'skills.cancelTrade': '/**\n' +
+      '         * Cancel the current trade.\n' +
+      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
+      '         * @param {string} destination_player, the name of the player to cancel the trade with.\n' +
+      '         * @returns {Promise<boolean>} true if the trade was cancelled, false otherwise.\n' +
+      '         * @example\n' +
+      '         * await skills.cancelTrade(bot, "player_name");\n' +
+      '         **/\n',
     'skills.clearNearestFurnace': '/**\n' +
       '         * Clears the nearest furnace of all items.\n' +
       '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
@@ -84,6 +100,14 @@ module.exports =
       '         * @returns {Promise<boolean>} true if the recipe was crafted, false otherwise.\n' +
       '         * @example\n' +
       '         * await skills.craftRecipe(bot, "stick");\n' +
+      '         **/\n',
+    'skills.declineTrade': '/**\n' +
+      '         * Decline a trade from the given player.\n' +
+      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
+      '         * @param {string} source_player, the name of the player to decline the trade from.\n' +
+      '         * @returns {Promise<boolean>} true if the trade was declined, false otherwise.\n' +
+      '         * @example\n' +
+      '         * await skills.declineTrade(bot, "player_name");\n' +
       '         **/\n',
     'skills.defendSelf': '/**\n' +
       '         * Defend yourself from all nearby hostile mobs until there are no more.\n' +
@@ -189,6 +213,18 @@ module.exports =
       '         * @param {number} distance, the distance to move away.\n' +
       '         * @returns {Promise<boolean>} true if the bot moved away, false otherwise.\n' +
       '         **/\n',
+    'skills.offerTrade': '/**\n' +
+      '         * Offer a trade to the given player.\n' +
+      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
+      '         * @param {string} destination_player, the name of the player to offer the trade to.\n' +
+      '         * @param {string} source_item, the item to offer.\n' +
+      '         * @param {number} source_num, the number of items to offer.\n' +
+      '         * @param {string} target_item, the item to receive.\n' +
+      '         * @param {number} target_num, the number of items to receive.\n' +
+      '         * @returns {Promise<boolean>} true if the trade was offered, false otherwise.\n' +
+      '         * @example\n' +
+      '         * await skills.offerTrade(bot, "player_name", "diamond", 1, "stone", 10);\n' +
+      '         **/\n',
     'skills.pickupNearbyItems': '/**\n' +
       '         * Pick up all nearby items.\n' +
       '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
@@ -262,15 +298,6 @@ module.exports =
       '         * @example\n' +
       '         * await skills.stopAllActions(bot);\n' +
       '         **/\n',
-    'skills.summonMobType': '/**\n' +
-      '         * Summon mobs of the given type.\n' +
-      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
-      '         * @param {string} mobType, the type of mob to summon.\n' +
-      '         * @param {number} num, the number of mobs to summon. Defaults to 1.\n' +
-      '         * @returns {Promise<boolean>} true if the mobs were summoned, false if the mob type was not found.\n' +
-      '         * @example\n' +
-      '         * await skills.summonMobType(bot, "zombie", 10);\n' +
-      '         **/\n',
     'skills.takeFromChest': '/**\n' +
       '         * Take the given item from the nearest chest.\n' +
       '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
@@ -334,12 +361,20 @@ module.exports =
       '     * let craftableItems = world.getCraftableItems(bot);\n' +
       '     **/\n',
     'world.getInventory': '/**\n' +
-      '    * Get the inventory of the bot as a string.\n' +
-      '    * @param {Bot} bot - The bot to get the inventory for.\n' +
-      '    * @returns {string} - The inventory of the bot.\n' +
-      '    * @example\n' +
-      '    * let inventory = world.getInventory(bot);\n' +
-      '    **/\n',
+      '     * Get the inventory of the bot as a string.\n' +
+      '     * @param {Bot} bot - The bot to get the inventory for.\n' +
+      '     * @returns {string} - The inventory of the bot.\n' +
+      '     * @example\n' +
+      '     * let inventory = world.getInventory(bot);\n' +
+      '     **/\n',
+    'world.getInventoryCountForItem': '/**\n' +
+      "     * Get the number of items in the bot's inventory.\n" +
+      '     * @param {Bot} bot - The bot to get the inventory count for.\n' +
+      '     * @param {string} item - The name of the item to get the count for.\n' +
+      "     * @returns {number} - The number of items in the bot's inventory.\n" +
+      '     * @example\n' +
+      "     * let count = world.getInventoryCountForItem(bot, 'oak_log');\n" +
+      '     **/\n',
     'world.getInventoryCounts': '/**\n' +
       "     * Get an object representing the bot's inventory.\n" +
       '     * @param {Bot} bot - The bot to get the inventory for.\n' +
@@ -350,12 +385,12 @@ module.exports =
       "     * let hasWoodenPickaxe = inventory['wooden_pickaxe'] > 0;\n" +
       '     **/\n',
     'world.getModes': '/**\n' +
-      '    * Get all available modes and their docs and see which are on/off.\n' +
-      '    * @param {Bot} bot - The bot to get the modes for.\n' +
-      '    * @returns {string} - The modes of the bot.\n' +
-      '    * @example\n' +
-      '    * let modes = world.getModes(bot);\n' +
-      '    **/\n',
+      '     * Get all available modes and their docs and see which are on/off.\n' +
+      '     * @param {Bot} bot - The bot to get the modes for.\n' +
+      '     * @returns {string} - The modes of the bot.\n' +
+      '     * @example\n' +
+      '     * let modes = world.getModes(bot);\n' +
+      '     **/\n',
     'world.getNearbyBlockTypes': '/**\n' +
       '     * Get a list of all nearby block names.\n' +
       '     * @param {Bot} bot - The bot to get nearby blocks for.\n' +
@@ -436,6 +471,31 @@ module.exports =
       '         * @param {Bot} bot - The bot to get the path for.\n' +
       '         * @param {Entity} target - The target to path to.\n' +
       '         * @returns {boolean} - True if there is a clear path, false otherwise.\n' +
+      '         **/\n'
+  },
+  cheats: {
+    'cheats.fillBlocks': '/**\n' +
+      '         * Fill the area with the given block type.\n' +
+      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
+      '         * @param {string} blockType, the type of block to fill.\n' +
+      '         * @param {number} x, the x coordinate of the block to fill.\n' +
+      '         * @param {number} y, the y coordinate of the block to fill.\n' +
+      '         * @param {number} z, the z coordinate of the block to fill.\n' +
+      '         * @param {number} dx, the x distance to fill.\n' +
+      '         * @param {number} dy, the y distance to fill.\n' +
+      '         * @param {number} dz, the z distance to fill.\n' +
+      '         * @returns {Promise<boolean>} true if the block was filled, false if the block type was not found.\n' +
+      '         * @example\n' +
+      '         * await skills.fillBlocks(bot, "stone", 10, 10, 10, 10, 10, 10);\n' +
+      '         **/\n',
+    'cheats.summonMobType': '/**\n' +
+      '         * Summon mobs of the given type.\n' +
+      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
+      '         * @param {string} mobType, the type of mob to summon.\n' +
+      '         * @param {number} num, the number of mobs to summon. Defaults to 1.\n' +
+      '         * @returns {Promise<boolean>} true if the mobs were summoned, false if the mob type was not found.\n' +
+      '         * @example\n' +
+      '         * await skills.summonMobType(bot, "zombie", 10);\n' +
       '         **/\n'
   }
 }

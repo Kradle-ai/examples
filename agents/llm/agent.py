@@ -187,6 +187,7 @@ class LLMBasedAgent(MinecraftAgent):
 
         return system_prompt
 
+    # utility function to truncate the prompt to 2000 characters for more readable logs
     def __truncate_prompt(self, prompt):
         truncated_prompt = []
         for p in prompt:
