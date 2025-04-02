@@ -26,6 +26,14 @@ module.exports =
       '         * @example\n' +
       '         * await skills.attackNearest(bot, "zombie", true);\n' +
       '         **/\n',
+    'skills.attackPlayer': '/**\n' +
+      '         * Attack the given player.\n' +
+      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
+      '         * @param {string} player_name, the name of the player to attack.\n' +
+      '         * @returns {Promise<boolean>} true if the player was attacked, false if interrupted\n' +
+      '         * @example\n' +
+      '         * await skills.attackPlayer(bot, "player_name");\n' +
+      '         **/\n',
     'skills.avoidEnemies': '/**\n' +
       '         * Move a given distance away from all nearby enemy mobs.\n' +
       '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
@@ -212,6 +220,23 @@ module.exports =
       '         * @example\n' +
       '         * await skills.putInChest(bot, "oak_log");\n' +
       '         **/\n',
+    'skills.sendChatMessage': '/**\n' +
+      '         * Send a chat message.\n' +
+      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
+      '         * @param {string} message, the message to send.\n' +
+      '         * @returns {Promise<boolean>} true if the message was sent, false otherwise.\n' +
+      '         * @example\n' +
+      '         * await skills.sendChatMessage(bot, "Hello!");\n' +
+      '         **/\n',
+    'skills.setMode': '/**\n' +
+      '         * Set a mode to on or off.\n' +
+      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
+      '         * @param {string} mode_name, the name of the mode to enable.\n' +
+      '         * @param {boolean} on, whether to enable or disable the mode.\n' +
+      '         * @returns {Promise<boolean>} true if the mode was set, false otherwise.\n' +
+      '         * @example\n' +
+      '         * await skills.setMode(bot, "hunting", true);\n' +
+      '         **/\n',
     'skills.smeltItem': '/**\n' +
       '         * Puts 1 coal in furnace and smelts the given item name, waits until the furnace runs out of fuel or input items.\n' +
       '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
@@ -229,6 +254,13 @@ module.exports =
       '         * @returns {Promise<boolean>} true if the bot stayed, false otherwise.\n' +
       '         * @example\n' +
       '         * await skills.stay(bot);\n' +
+      '         **/\n',
+    'skills.stopAllActions': '/**\n' +
+      '         * Stop all actions.\n' +
+      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
+      '         * @returns {Promise<boolean>} true if the actions were stopped, false otherwise.\n' +
+      '         * @example\n' +
+      '         * await skills.stopAllActions(bot);\n' +
       '         **/\n',
     'skills.summonMobType': '/**\n' +
       '         * Summon mobs of the given type.\n' +
@@ -275,7 +307,16 @@ module.exports =
       '         * @returns {Promise<boolean>} true if the chest was viewed, false otherwise.\n' +
       '         * @example\n' +
       '         * await skills.viewChest(bot);\n' +
-      '         * **/\n'
+      '         * **/\n',
+    'skills.whisper': '/**\n' +
+      '         * Whisper a message to the given player.\n' +
+      '         * @param {MinecraftBot} bot, reference to the minecraft bot.\n' +
+      '         * @param {string} player_name, the name of the player to whisper to.\n' +
+      '         * @param {string} message, the message to send.\n' +
+      '         * @returns {Promise<boolean>} true if the message was sent, false otherwise.\n' +
+      '         * @example\n' +
+      '         * await skills.whisper(bot, "player_name", "Hello!");\n' +
+      '         **/\n'
   },
   world: {
     'world.getBiomeName': '/**\n' +
@@ -292,6 +333,13 @@ module.exports =
       '     * @example\n' +
       '     * let craftableItems = world.getCraftableItems(bot);\n' +
       '     **/\n',
+    'world.getInventory': '/**\n' +
+      '    * Get the inventory of the bot as a string.\n' +
+      '    * @param {Bot} bot - The bot to get the inventory for.\n' +
+      '    * @returns {string} - The inventory of the bot.\n' +
+      '    * @example\n' +
+      '    * let inventory = world.getInventory(bot);\n' +
+      '    **/\n',
     'world.getInventoryCounts': '/**\n' +
       "     * Get an object representing the bot's inventory.\n" +
       '     * @param {Bot} bot - The bot to get the inventory for.\n' +
@@ -301,6 +349,13 @@ module.exports =
       "     * let oakLogCount = inventory['oak_log'];\n" +
       "     * let hasWoodenPickaxe = inventory['wooden_pickaxe'] > 0;\n" +
       '     **/\n',
+    'world.getModes': '/**\n' +
+      '    * Get all available modes and their docs and see which are on/off.\n' +
+      '    * @param {Bot} bot - The bot to get the modes for.\n' +
+      '    * @returns {string} - The modes of the bot.\n' +
+      '    * @example\n' +
+      '    * let modes = world.getModes(bot);\n' +
+      '    **/\n',
     'world.getNearbyBlockTypes': '/**\n' +
       '     * Get a list of all nearby block names.\n' +
       '     * @param {Bot} bot - The bot to get nearby blocks for.\n' +
@@ -359,6 +414,23 @@ module.exports =
       '     * let position = world.getPosition(bot);\n' +
       '     * let x = position.x;\n' +
       '     **/\n',
+    'world.getStats': '/**\n' +
+      '     * Get the stats of the bot.\n' +
+      '     * @param {Bot} bot - The bot to get the stats for.\n' +
+      '     * @returns {string} - The stats of the bot.\n' +
+      '     * @example\n' +
+      '     * let stats = world.getStats(bot);\n' +
+      '     **/\n',
+    'world.getVisibleBlocks': '/**\n' +
+      '         * Get a list of all nearby block names.\n' +
+      '         * @param {Bot} bot - The bot to get nearby blocks for.\n' +
+      '         * @param {number} xradius - The x radius to scan, default 16.\n' +
+      '         * @param {number} yradius - The y radius to scan, default 16.\n' +
+      '         * @param {number} zradius - The z radius to scan, default 16.\n' +
+      '         * @returns {string|[][][]} - A matrix of blocks in the radius.\n' +
+      '         * @example\n' +
+      '         * let blocks = world.getVisibleBlocks(bot, 16);\n' +
+      '         **/\n',
     'world.isClearPath': '/**\n' +
       '         * Check if there is a path to the target that requires no digging or placing blocks.\n' +
       '         * @param {Bot} bot - The bot to get the path for.\n' +
