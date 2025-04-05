@@ -6,11 +6,8 @@ A Minecraft agent that uses GPT-4 through OpenRouter API to make decisions and i
 
 1. Create a `.env` file with your Kradle API key and OpenRouter API key:
 ```
-KRADLE_API_KEY=your_key_here
-KRADLE_AGENT_USERNAME=your_agent_username_in_kradle
-OPENROUTER_API_KEY=your_key_here
-MODEL=google/gemini-2.0-flash-001 # or any other model supported by OpenRouter
-#CUSTOM_LLM_CHAT_API_URL_OVERRIDE="http://192.168.1.200:11434/api/chat" enable and only override if you want to use a local LLM eg from ollama
+KRADLE_API_KEY=your_api_key_here
+OPENROUTER_API_KEY=your_api_key_here
 ```
 
 2. Install dependencies:

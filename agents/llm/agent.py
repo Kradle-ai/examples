@@ -2,8 +2,9 @@
 # it uses the OpenRouter API to select, prompt, and get the response from any number of LLMs
 
 from kradle import (
+    AgentManager,
     MinecraftAgent,
-    JSON_RESPONSE_FORMAT
+    JSON_RESPONSE_FORMAT,
 )
 from kradle.models import MinecraftEvent, InitParticipantResponse
 from dotenv import load_dotenv
@@ -25,9 +26,13 @@ load_dotenv()
 
 #the max number of times the LLM will retry to generate a valid response
 MAX_RETRIES = 3
+
 # let's define a model and persona for our agent
-MODEL = os.getenv("MODEL") # refer to https://openrouter.ai/models for all available models
+MODEL = "google/gemini-2.0-flash-001"
 PERSONA = "you are a cool resourceful agent. you really want to achieve the task that has been given to you."  # check out some other personas in prompts/config.py
+
+# this is the username of the agent (eg. kradle.ai/<my-username>/agents/<my-agent-username>). if it does not exist, it will be created.
+USERNAME = "python1"
 
 # plus some additional settings:
 DELAY_AFTER_ACTION = 100  # this adds a delay (in milliseconds) after an action is performed. increase this if the agent is too fast or if you want more time to see the agent's actions
@@ -35,21 +40,16 @@ DELAY_AFTER_ACTION = 100  # this adds a delay (in milliseconds) after an action 
 # your openrouter API key
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-# Your local ollama (or compatible API) endpoint, or leave empty to use OpenRouter
-CUSTOM_LLM_CHAT_API_URL_OVERRIDE = os.getenv("CUSTOM_LLM_CHAT_API_URL_OVERRIDE") 
-
-# if true, the agent will wait for the LLM response before making another request. 
-# useful to prevent the agent from making too many requests when hitting a local ollama endpoint
-WAIT_FOR_LLM_RESPONSE_BEFORE_MAKING_ANOTHER_REQUEST = False
-
 # this is your agent class. It extends the MinecraftAgent class in the Kradle SDK
 # you pass this whole class into the AgentManager.serve() below
 # this lets Kradle manage the lifecycle of this agent.
 # Kradle can create multiple instances of your agent (eg. adding two of the same agent to a challenge)
 # each instance of this class is called a 'participant'
 class LLMBasedAgent(MinecraftAgent):
+    persona = PERSONA
+    model = MODEL
 
-    username = os.getenv("KRADLE_AGENT_USERNAME")  # this is the username of the agent (eg. kradle.ai/<my-username>/agents/<my-agent-username>)
+    username = USERNAME  # this is the username of the agent (eg. kradle.ai/<my-username>/agents/<my-agent-username>)
     display_name = username + " (llm)"  # this is the display name of the agent
     description = "This is an LLM-based agent that can be used to perform tasks in Minecraft."
 
@@ -83,8 +83,9 @@ class LLMBasedAgent(MinecraftAgent):
         self.memory.js_functions = challenge_info.js_functions
 
         # storing in memory if you're using a Redis Memory, and want to make your agent resilient to restarts
-        self.memory.persona = PERSONA
-        self.memory.model = MODEL
+        self.memory.persona = LLMBasedAgent.persona
+        self.memory.model = LLMBasedAgent.model
+        self.memory.llm_provider = os.getenv("LLM_PROVIDER") # optional: set LLM_PROVIDER to ollama if you want to use ollama instead of openrouter
         self.memory.delay_after_action = DELAY_AFTER_ACTION
 
         print(f"Initializing agent for participant ID: {self.participant_id} with username: {self.username}")
@@ -103,9 +104,7 @@ class LLMBasedAgent(MinecraftAgent):
             }
         )
 
-        # Add a flag to track if we're waiting for LLM response
-        self.memory.wait_for_llm = False
-        return InitParticipantResponse({"listenTo": [MinecraftEvent.CHAT, MinecraftEvent.COMMAND_EXECUTED, MinecraftEvent.MESSAGE, MinecraftEvent.IDLE]})
+        return InitParticipantResponse({"listenTo": [MinecraftEvent.CHAT, MinecraftEvent.COMMAND_EXECUTED, MinecraftEvent.MESSAGE, MinecraftEvent.IDLE, MinecraftEvent.HEALTH]})
 
     # this is called when an event happens
     # we return our next action
@@ -117,8 +116,8 @@ class LLMBasedAgent(MinecraftAgent):
 
         # Process the observation and get LLM response
         try:
-            if WAIT_FOR_LLM_RESPONSE_BEFORE_MAKING_ANOTHER_REQUEST:
-                self.memory.wait_for_llm = True
+            if self.memory.llm_provider == "ollama":
+                self.memory.wait_for_llm = True # When using ollama, we should wait for the LLM response before making another request
             
             # extend/append to the in-game chat history
             self.memory.game_chat_history.extend(observation.chat_messages)
@@ -133,6 +132,11 @@ class LLMBasedAgent(MinecraftAgent):
             response = self.__get_llm_response(observation_summary, observation)
             print(f"Agent Response: {response}")
             # print(f"Participant ID: {self.participant_id}")
+
+            # if the response is empty, return an empty response
+            if response["code"] == "":
+                response["code"] = "await console.log('I am thinking about code...');"
+
             return response
         finally:
             self.memory.wait_for_llm = False
@@ -160,6 +164,7 @@ class LLMBasedAgent(MinecraftAgent):
             f"Latest Chat: {observation.chat_messages}\n\n" if observation.chat_messages else ""
             f"Visible Players: {', '.join(observation.players) if observation.players else 'None'}\n\n"
             f"Visible Blocks: {', '.join(observation.blocks) if observation.blocks else 'None'}\n\n"
+            f"Visible Entities: {', '.join(observation.entities) if observation.entities else 'None'}\n\n"
             f"Inventory: {inventory_summary}\n\n"
             f"Health: {observation.health * 100}/100"
         )
@@ -245,12 +250,12 @@ class LLMBasedAgent(MinecraftAgent):
         # print(f"using model: {self.memory.model}")
         # self.__print_prompt(truncated_prompt)
         
-        if CUSTOM_LLM_CHAT_API_URL_OVERRIDE:
+        if self.memory.llm_provider == "ollama":
             json_payload["format"] = JSON_RESPONSE_FORMAT["json_schema"]["schema"]
             json_payload["stream"] = False
             json_payload["keep_alive"] = -1 # prevent model from timing out of cache
             response = requests.post(
-                CUSTOM_LLM_CHAT_API_URL_OVERRIDE,
+                os.getenv("OLLAMA_API_URL"),
                 json=json_payload,
                 timeout=30,
             ).json()
@@ -328,13 +333,33 @@ class LLMBasedAgent(MinecraftAgent):
             end = content.rfind("}") + 1
             content_to_parse = content[start:end]
 
-            # print(f"Content to parse: {content_to_parse}")
+            if content_to_parse == "":
+                print(f"Error: Could not parse JSON in response. Received: {content}")
+                action = { "code": "", "message": "" }
+                error_message = "Unable to parse JSON from LLM response"
+                return content, action, success, error_message
+
             # Parse the content string as JSON
-            json_content = json.loads(content_to_parse)
-            action = { "code": json_content["code"], "message": json_content["message"] }
-            success = True
+            try:
+                json_content = json.loads(content_to_parse)
+                action = { "code": json_content["code"] if "code" in json_content else "", "message": json_content["message"] if "message" in json_content else "" }
+                success = True
+            except Exception as e:
+                print(f"Unable to parse JSON from LLM response for content: {content_to_parse} with error: {e}")
+                error_message = "Unable to parse JSON from LLM response"
+                return content, action, success, error_message
+
         except Exception as e:
             print(f"Error: {e}")
             error_message = str(e) if e else ""
 
         return content, action, success, error_message
+
+# finally, lets serve our agent!
+
+if __name__ == "__main__":    
+    # this creates a web server and an SSH tunnel (so our agent has a stable public URL)
+    app, connection_info = AgentManager.serve(LLMBasedAgent, create_public_url=True)
+    print(f"Started agent, now reachable at URL: {connection_info}", flush=True)
+
+# now go to app.kradle.ai and run this agent against a challenge!

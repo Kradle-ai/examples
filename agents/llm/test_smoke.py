@@ -1,3 +1,5 @@
+# test if the LLM agent is able to respond with json to a simple init and event prompt
+
 from agent_manager_mock import AgentManagerMock
 from agent import LLMBasedAgent
 from samples.sample_data import SAMPLE_INIT_DATA, SAMPLE_EVENT_INITIAL_STATE, SAMPLE_EVENT_COMMAND_EXECUTED_ERROR
