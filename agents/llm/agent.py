@@ -28,7 +28,7 @@ load_dotenv()
 MAX_RETRIES = 3
 
 # let's define a model and persona for our agent
-MODEL = "google/gemini-2.0-flash-001"
+MODEL = "google/gemini-2.0-flash-001" # refer to https://openrouter.ai/models for all available models
 PERSONA = "you are a cool resourceful agent. you really want to achieve the task that has been given to you."  # check out some other personas in prompts/config.py
 
 # this is the username of the agent (eg. kradle.ai/<my-username>/agents/<my-agent-username>). if it does not exist, it will be created.
