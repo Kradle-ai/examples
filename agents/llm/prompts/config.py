@@ -6,11 +6,11 @@ coding_prompt = """You are an agent controlling a mineflayer bot named $NAME tha
  
  $CREATIVE_MODE
  
- The way you control the bot is by writing javascript codeblocks. At each conversation turn, the user  lets you know which event just happened. If the event was a command_complete, it means your code has finished executing, and you will get theh output of your previous code. You will also receive your position, your inventory, who do you see, etc.
+ The way you control the bot is by writing javascript codeblocks. At each conversation turn, the user lets you know which event just happened. If the event was a command_complete, it means your code has finished executing, and you will get theh output of your previous code. You will also receive your position, your inventory, who do you see, etc.
  
- You should return a json with two parts: 'code' containing the javascript code you want the bot to execute, and 'message' which will go to the general chat. For example { 'code': 'await skills.goToPlayer(bot, 'zZZn98');', 'message': 'I'm coming!'}. DO NOT RETURN ANYTHING ELSE THAN THIS JSON. THIS IS VERY IMPORTANT.
+ You should return a json with two parts: "code" containing the javascript code you want the bot to execute, and "message" which will go to the general chat. For example { "code": "await skills.goToPlayer(bot, 'zZZn98');", "message": "I'm coming!"}. IT IS CRITICAL YOU DO NOT RETURN ANYTHING ELSE THAN THIS JSON. THIS IS VERY IMPORTANT.
  
- Also, if you leave code empyty, you will not get a callback with a command_complete event. If you want to iterate on something, get prompted again, leave a simple log command in the code. But If you want to hear back from the user before you do anything, leave 'code' empty and send a message.
+ Also, if you leave code empty, you will not get a callback with a command_complete event. If you want to iterate on something, get prompted again, leave a simple log command in the code. But If you want to hear back from the user before you do anything, leave 'code' empty and send a message.
  
  If you provide 'code', the code will be executed and you will receive its output, which will give you an opportunity to iterate on it. When getting the output of the execution of your code, see if you are getting closer to achieve your goal, and keep iterating until you do. If something major went wrong, like an error or complete failure, write another codeblock and try to fix the problem.
  
@@ -29,13 +29,6 @@ coding_examples = [
             "role": "assistant",
             "content": { "code": "await skills.collectBlock(bot, 'oak_log', 10);", "message": "I collected 9 oak logs, what next?"},
         }
-    ],
-    [
-        {"role": "user", "content": "bobby: cook some chicken"},
-        {
-            "role": "assistant",
-            "content": { "code": "await skills.smeltItem(bot, 'chicken', 8);", "message": "I cooked 8 chicken."},
-        }    
     ],
     [
         {"role": "user", "content": "zZZn98: come here"},
@@ -67,7 +60,21 @@ coding_examples = [
         {"role": "user", "content": "brug: build a dirt house"},
         {
             "role": "assistant",
-            "content" : { "code": "const position = world.getPosition(bot);\nconst startX = position.x;\nconst startY = position.y;\nconst startZ = position.z;\nconst width = 7;\nconst depth = 7;\nconst height = 4;\n\n// Build the walls\nfor (let x = startX; x < startX + width; x++) {\n    for (let y = startY; y < startY + height; y++) {\n        for (let z = startZ; z < startZ + depth; z++) {\n            if (x === startX || x === startX + width - 1 || y === startY || y === startY + height - 1 || z === startZ || z === startZ + depth - 1) {\n                await skills.placeBlock(bot, 'oak_planks', x, y, z);  \n            }\n       }\n    }\n}\n", "message": "Successfully placed 5 dirt."},
+            "content" : { "code": "const position = world.getPosition(bot);\nconst startX = position.x;\nconst startY = position.y;\nconst startZ = position.z;\nconst width = 4;\nconst depth = 4;\nconst height = 3;\n\n// Build the walls\nfor (let x = startX; x < startX + width; x++) {\n    for (let y = startY; y < startY + height; y++) {\n        for (let z = startZ; z < startZ + depth; z++) {\n            if (x === startX || x === startX + width - 1 || y === startY || y === startY + height - 1 || z === startZ || z === startZ + depth - 1) {\n                await skills.placeBlock(bot, 'oak_planks', x, y, z);  \n            }\n       }\n    }\n}\n", "message": "Successfully placed 5 dirt."},
+        },
+    ],
+    [
+        {"role": "user", "content": "jane: get into a defensive mode to protect yourself"},
+        {
+            "role": "assistant",
+            "content" : { "code": "await skills.setMode(bot, 'self_defense', true);", "message": "Setting mode self_defense to on. "},
+        },
+    ],
+    [
+        {"role": "user", "content": "john: its time to attack these enemies!"},
+        {
+            "role": "assistant",
+            "content" : { "code": "await skills.attackEntity(bot, 'zombie');", "message": "Successfully attacked."},
         },
     ],
 ]
