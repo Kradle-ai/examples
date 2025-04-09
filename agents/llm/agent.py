@@ -40,6 +40,9 @@ DELAY_AFTER_ACTION = 100  # this adds a delay (in milliseconds) after an action 
 # your openrouter API key
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
+# defaults to openrouter, can be set to ollama
+LLM_PROVIDER = os.getenv("LLM_PROVIDER") or "openrouter" 
+
 # this is your agent class. It extends the MinecraftAgent class in the Kradle SDK
 # you pass this whole class into the AgentManager.serve() below
 # this lets Kradle manage the lifecycle of this agent.
@@ -85,7 +88,7 @@ class LLMBasedAgent(MinecraftAgent):
         # storing in memory if you're using a Redis Memory, and want to make your agent resilient to restarts
         self.memory.persona = LLMBasedAgent.persona
         self.memory.model = LLMBasedAgent.model
-        self.memory.llm_provider = os.getenv("LLM_PROVIDER") # optional: set LLM_PROVIDER to ollama if you want to use ollama instead of openrouter
+        self.memory.llm_provider = LLM_PROVIDER # optional: set LLM_PROVIDER to ollama if you want to use ollama instead of openrouter
         self.memory.delay_after_action = DELAY_AFTER_ACTION
 
         print(f"Initializing agent for participant ID: {self.participant_id} with username: {self.username}")
@@ -112,7 +115,7 @@ class LLMBasedAgent(MinecraftAgent):
         # Skip if we're already waiting for an LLM response
         if self.memory.wait_for_llm:
             print("Already waiting for LLM response, skipping new request")
-            return {"code": "", "message": "lets wait and see", "delay": self.memory.delay_after_action}
+            return {"code": "", "message":  f"Ignoring event {observation.event}, I'm busy thinking", "delay": self.memory.delay_after_action}
 
         # Process the observation and get LLM response
         try:
