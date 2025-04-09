@@ -95,7 +95,6 @@ class LLMBasedAgent(MinecraftAgent):
         if OPENROUTER_API_KEY is not None and len(OPENROUTER_API_KEY) > 20:
             self.memory.openrouter_api_key = OPENROUTER_API_KEY
         else:
-            print("No openrouter api key found in environment variables, trying to get it from the kradle API")
             # get the openrouter api key from the kradle API
             human = self._internal_api_client.humans.get()
             self.memory.openrouter_api_key = human["openRouterKey"]
