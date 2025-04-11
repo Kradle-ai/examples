@@ -37,10 +37,10 @@ USERNAME = "python1"
 # plus some additional settings:
 DELAY_AFTER_ACTION = 100  # this adds a delay (in milliseconds) after an action is performed. increase this if the agent is too fast or if you want more time to see the agent's actions
 
-# your openrouter API key
+# optional: your openrouter API key. If not provided, will obtain a key with a small amount of trial credit from the Kradle API
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-# defaults to openrouter, can be set to ollama
+# optional: defaults to openrouter, can be set to ollama
 LLM_PROVIDER = os.getenv("LLM_PROVIDER") or "openrouter" 
 
 # this is your agent class. It extends the MinecraftAgent class in the Kradle SDK
@@ -90,6 +90,14 @@ class LLMBasedAgent(MinecraftAgent):
         self.memory.model = LLMBasedAgent.model
         self.memory.llm_provider = LLM_PROVIDER # optional: set LLM_PROVIDER to ollama if you want to use ollama instead of openrouter
         self.memory.delay_after_action = DELAY_AFTER_ACTION
+
+        # try to find the openrouter api key in the environment variables
+        if OPENROUTER_API_KEY is not None and len(OPENROUTER_API_KEY) > 20:
+            self.memory.openrouter_api_key = OPENROUTER_API_KEY
+        else:
+            # get the openrouter api key from the kradle API
+            human = self._internal_api_client.humans.get()
+            self.memory.openrouter_api_key = human["openRouterKey"]
 
         print(f"Initializing agent for participant ID: {self.participant_id} with username: {self.username}")
         print(f"Persona: {self.memory.persona}")
@@ -267,7 +275,7 @@ class LLMBasedAgent(MinecraftAgent):
             json_payload["response_format"] = JSON_RESPONSE_FORMAT
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
-                headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
+                headers={"Authorization": f"Bearer {self.memory.openrouter_api_key}"},
                 json=json_payload,
                 timeout=30,
             ).json()
