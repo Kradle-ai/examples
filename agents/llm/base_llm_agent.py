@@ -1,101 +1,70 @@
-# this agent uses an LLM to decide what to do.
-# it uses the OpenRouter API to select, prompt, and get the response from any number of LLMs
-
-from kradle import (
-    AgentManager,
-    MinecraftAgent,
-    JSON_RESPONSE_FORMAT
-)
+# This base class uses the OpenRouter API to select, prompt, and get the response from the LLM of choice
+from kradle import (AgentManager, MinecraftAgent, JSON_RESPONSE_FORMAT)
 from kradle.models import MinecraftEvent, InitParticipantResponse
 from dotenv import load_dotenv
 import requests
 import json
 import os
 
-from prompts.config import (
-    coding_prompt,
-    coding_examples,
-    creative_mode_prompt,
-    skills_prompt,
-    examples_prompt,
-    persona_prompt,
-    agent_prompt,
-)
+from prompts.config import (coding_prompt, coding_examples, creative_mode_prompt, skills_prompt, examples_prompt, persona_prompt, agent_prompt)
 
 load_dotenv()
 
-#the max number of times the LLM will retry to generate a valid response
-MAX_RETRIES = 3
-
-# let's define a model and persona for our agent
+# Let's define a model and persona for our agent
 MODEL = "google/gemini-2.0-flash-001" # refer to https://openrouter.ai/models for all available models
-PERSONA = "you are a cool resourceful agent. you really want to achieve the task that has been given to you."  # check out some other personas in prompts/config.py
+PERSONA = "you are a cool resourceful agent. you really want to achieve the task that has been given to you." # check out some other personas in prompts/config.py
 
-# this is the username of the agent (eg. kradle.ai/<my-username>/agents/<my-agent-username>). if it does not exist, it will be created.
+# Username of the agent in kradle (eg. kradle.ai/<my-username>/agents/<my-agent-username>). Will be created if it doesn't exist.
 USERNAME = "python1"
 
-# plus some additional settings:
-DELAY_AFTER_ACTION = 100  # this adds a delay (in milliseconds) after an action is performed. increase this if the agent is too fast or if you want more time to see the agent's actions
+# Plus some additional settings:
+DELAY_AFTER_ACTION = 100  # This adds a delay (in milliseconds) after an action is performed. Increase this if the agent is too fast or if you want more time to see the agent's actions
+MAX_RETRIES = 3 # Number of times the LLM will retry to generate a valid response
 
-# this is your agent class. It extends the MinecraftAgent class in the Kradle SDK
-# you pass this whole class into the AgentManager.serve() below
-# this lets Kradle manage the lifecycle of this agent.
+# This is your agent class. It extends the MinecraftAgent class in the Kradle SDK
+# You pass this whole class into the AgentManager.serve() below
+# This lets Kradle manage the lifecycle of this agent
 # Kradle can create multiple instances of your agent (eg. adding two of the same agent to a challenge)
-# each instance of this class is called a 'participant'
+# Each instance of this class is called a 'participant'
 class BaseLLMAgent(MinecraftAgent):
     persona = PERSONA
     model = MODEL
 
-    username = USERNAME  # this is the username of the agent (eg. kradle.ai/<my-username>/agents/<my-agent-username>)
-    display_name = username + " (llm)"  # this is the display name of the agent
+    username = USERNAME
+    display_name = username + " (llm)"  # display name of the agent
     description = "This is an LLM-based agent that can be used to perform tasks in Minecraft."
 
-    # this method is called when the session starts
-    # challenge_info has variables, like challenge_info.task
-    # use the return statement of this method to send a list of in-game events you wish to listen to.
-    # these will trigger the on_event() function when they occur
+    # This method is called when the session starts
+    # Return a list of in-game events you wish to listen to
+    # These will trigger the on_event() function when they occur
     def init_participant(self, challenge_info):
-
-        # self.memory is a utility instantiated for you
-        # that can be used to store and retrieve information
-        # it persists across the lifecycle of this participant.
-        # It is an instance of the StandardMemory class in the Kradle SDK
-
         print(f"Received init_participant call for {self.participant_id} with run_id: {challenge_info.run_id}")
 
-        # save the task to memory
+        # Initialize memory with challenge information
+        # self.memory is a utility instantiated for you by the Kradle SDK to store and retrieve information
+        # It persists across the lifecycle of this participant
         self.memory.task = challenge_info.task
-
-        # array to store LLM interaction history
-        self.memory.llm_transcript = []
-
-        # array to store in-game chat history
-        self.memory.game_chat_history = []
-
-        # set Minecraft modes (e.g. creative mode, self_preservation, etc)
-        # TODO: Link to docs to explain more.
-        self.memory.agent_modes = challenge_info.agent_modes
-
-        # dictionaries to store all possible javascript functions
-        self.memory.js_functions = challenge_info.js_functions
-
-        # storing in memory if you're using a Redis Memory, and want to make your agent resilient to restarts
+        self.memory.llm_transcript = []  # store LLM interaction history
+        self.memory.game_chat_history = []  # store in-game chat history
+        self.memory.agent_modes = challenge_info.agent_modes  # Minecraft modes (creative, self_preservation, etc)
+        self.memory.js_functions = challenge_info.js_functions  # available JavaScript functions
+        self.memory.delay_after_action = DELAY_AFTER_ACTION
+        
+        # Store agent configuration in memory for resilience
         self.memory.persona = BaseLLMAgent.persona
         self.memory.model = BaseLLMAgent.model
 
-        openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
-        if openrouter_api_key is None or len(openrouter_api_key) < 20:
+        # Look for OpenRouter API key in environment variables, falling back to Kradle API if not found
+        self.memory.openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+        if self.memory.openrouter_api_key is None or len(self.memory.openrouter_api_key) < 20:
             human = self._internal_api_client.humans.get()
-            self.memory.openrouter_api_key = human["openRouterKey"] # get OpenRouter API key from Kradle API
-        else:
-            # the user has provided their own OpenRouter API key
-            self.memory.openrouter_api_key = openrouter_api_key
+            self.memory.openrouter_api_key = human["openRouterKey"]
         
+        # Log initialization info to console
         print(f"Initializing agent for participant ID: {self.participant_id} with username: {self.username}")
         print(f"Persona: {self.memory.persona}")
         print(f"Model: {self.memory.model}")
         print(f"Task: {self.memory.task}")
-        print(f"Agent modes: {self.memory.agent_modes}")
 
         # self.log() lets us log information to the Kradle dashboard (left pane in the session viewer)
         self.log(
@@ -105,41 +74,40 @@ class BaseLLMAgent(MinecraftAgent):
             }
         )
 
-        return InitParticipantResponse({"listenTo": [MinecraftEvent.CHAT, MinecraftEvent.COMMAND_EXECUTED, MinecraftEvent.MESSAGE, MinecraftEvent.IDLE, MinecraftEvent.HEALTH]})
+        # Tell Kradle what events we want to listen to
+        return InitParticipantResponse({"listenTo": [MinecraftEvent.CHAT, MinecraftEvent.COMMAND_EXECUTED, MinecraftEvent.MESSAGE, MinecraftEvent.IDLE]})
 
-    # this is called when an event happens
-    # we return our next action
+    # Called when an event happens, we process the observation and return an action
+    # See https://app.kradle.ai/docs/how-kradle-works for details on observations and actions
     def on_event(self, observation):
         # Extend/append to the in-game chat history
         self.memory.game_chat_history.extend(observation.chat_messages)
 
+        # Format the observation for the LLM
         observation_summary = self._format_observation(observation)
         
-        print("================================================")
+        print(f"\033[91m########################################################")
         print(f"\nObservation Summary:\n{observation_summary}")
-        print("================================================")
-        
+        print(f"\033[91m########################################################\033[0m")
+
+        # Generate and return the agent's response
         response = self.__generate_llm_agent_action(observation_summary, observation)
-        print(f"Agent Response: {response}")
+        print(f"Participant '{self.participant_id}' Agent Response: {response}")
 
         return response
 
-    # convert observation from object => string, so we can build a LLM prompt
+    # Convert observation object to a string for the LLM prompt
     def _format_observation(self, observation):
-
-        # python array operation to extend/append to the in-game chat history
-        self.memory.game_chat_history.extend(observation.chat_messages)
-
         print(f"Minecraft Chat History: {self.memory.game_chat_history}")
 
-        # lets get everythign in our inventory
+        # Let's get everything in our inventory
         inventory_summary = (
             ", ".join([f"{count} {name}" for name, count in observation.inventory.items()])
             if observation.inventory
             else "None"
         )
 
-        # return a string with everything the LLM needs to know
+        # Return string with everything the LLM needs to know about the state of the game
         return (
             f"Event received: {observation.event if observation.event else 'None'}\n\n"
             f"{observation.output if observation.output else 'Output: None'}\n\n"
@@ -152,13 +120,12 @@ class BaseLLMAgent(MinecraftAgent):
             f"Health: {observation.health * 100}/100"
         )
 
-    # this function builds the system prompt for the agent
+    # Builds the system prompt for the agent
     def _build_system_prompt(self, observation):
         system_prompt = []
-        # build the system prompt for the agent
+
+        # Build coding prompt from template, including task, agent_modes, and creative_mode
         prompt = coding_prompt
-        
-        # load task, persona, agent_modes, and commands from memory to build the prompt
         prompt = prompt.replace("$NAME", observation.name)
         prompt = prompt.replace("$TASK", self.memory.task)
         prompt = prompt.replace("$AGENT_MODE", str(self.memory.agent_modes))
@@ -170,47 +137,46 @@ class BaseLLMAgent(MinecraftAgent):
 
         system_prompt.append({"role": "system", "content": prompt})
 
+        # Skills prompt with code documentation to give the agent context about the available commands
         prompt = skills_prompt
         prompt = prompt.replace("$CODE_DOCS", str(self.memory.js_functions))
         system_prompt.append({"role": "system", "content": prompt})
 
+        # Minecraft modes (creative, self_preservation, etc) available in the challenge
         prompt = agent_prompt
         prompt = prompt.replace("$AGENT_MODE", str(self.memory.agent_modes))
         system_prompt.append({"role": "system", "content": prompt})
 
+        # Examples prompt
         prompt = examples_prompt
         prompt = prompt.replace("$EXAMPLES", str(coding_examples))
         system_prompt.append({"role": "system", "content": prompt})
 
+        # Persona prompt
         prompt = persona_prompt
         prompt = prompt.replace("$PERSONA", self.memory.persona)
         system_prompt.append({"role": "system", "content": prompt})
 
         return system_prompt
-
-    # utility function to truncate the prompt to 2000 characters for more readable logs
-    def __truncate_prompt(self, prompt):
-        truncated_prompt = []
-        for p in prompt:
-            truncated_p = p.copy()  # Create a shallow copy of the dict
-            if len(truncated_p["content"]) > 2000:
-                truncated_p["content"] = truncated_p["content"][:2000] + "..."
-            truncated_prompt.append(truncated_p)
-        return truncated_prompt
+        
+    # Build prompt from conversation transcript so agent has historical context on past interactions
+    def _build_history_prompt(self):
+        return self.memory.llm_transcript[-5:] # last 5 messages from the conversation history
 
     # Generate a complete agent response by querying the LLM and processing the result
     def __generate_llm_agent_action(self, observation_summary, observation, max_retries=MAX_RETRIES):
         if max_retries < MAX_RETRIES:
             print(f"\033[91m########################################################")
             print(f"\033[91mRetrying LLM response for the {MAX_RETRIES - max_retries} time\033[0m")
-            print(f"\033[91m########################################################")
+            print(f"\033[91m########################################################\033[0m")
 
-        # prompt = system prompt + last 5 LLM interactions + last observation
+        # Build the complete prompt with system instructions, historical context, and user input
         llm_prompt = [
             *self._build_system_prompt(observation),
-            *self.memory.llm_transcript[-5:],
+            *self._build_history_prompt(),
             {"role": "user", "content": observation_summary},
         ]
+        print(f"LLM Prompt: {llm_prompt}")
 
         json_payload = {
             "model": self.memory.model,
@@ -218,34 +184,42 @@ class BaseLLMAgent(MinecraftAgent):
             "require_parameters": True,
         }
         
+        # Make LLM request
         response = self._make_llm_request(json_payload)
 
+        # Process the response
         content, action, success, error_message = self._process_llm_response(response)
 
-        # logging what we sent and recieved to the Kradle dashboard
+        # Log interaction to Kradle dashboard
         self.log({"prompt": self.__truncate_prompt(llm_prompt), "model": self.memory.model, "response": content})
 
-        # append to the message history
-        self.memory.llm_transcript.extend(
-            [
-                {"role": "user", "content": observation_summary},
-                {"role": "assistant", "content": content }
-            ]
-        )
+        # Update conversation history for future LLM context
+        self.memory.llm_transcript.extend([
+            {"role": "user", "content": observation_summary},
+            {"role": "assistant", "content": content}
+        ])
 
+        # Return action if successful
         if success:
-            return {"code": action["code"], "message": action["message"], "delay": self.memory.delay_after_action}
-        
-        if max_retries <= 0:
-            return {"code": "", "message": "I'm sorry, I'm having trouble generating a response. Please try again later.", "delay": self.memory.delay_after_action}
+            return {
+                "code": action["code"], 
+                "message": action["message"], 
+                "delay": self.memory.delay_after_action
+            }
+        else:
+            if max_retries <= 0:
+                return {"code": "", "message": "I'm sorry, I'm having trouble generating a response. Please try again later.", "delay": self.memory.delay_after_action}
 
-        self.memory.llm_transcript.append({"role": "system", "content": f"your last response was not valid because: {error_message}"})
+            # We didn't succeed, so add the error message to the transcript and retry
+            self.memory.llm_transcript.append({
+                "role": "system", 
+                "content": f"your last response was not valid because: {error_message}"
+            })
 
-        return self.__generate_llm_agent_action(observation_summary, observation, max_retries - 1)
+            return self.__generate_llm_agent_action(observation_summary, observation, max_retries - 1)
     
-    # This method could be overridden by subclasses to use different LLM providers
+    # Make a request to the LLM API, defaults to OpenRouter (override for other LLM providers)
     def _make_llm_request(self, json_payload):
-        # Default implementation for OpenRouter
         json_payload["response_format"] = JSON_RESPONSE_FORMAT
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -255,27 +229,25 @@ class BaseLLMAgent(MinecraftAgent):
         ).json()
         return response
 
-    # This method extracts the content from the LLM response
+    # Extract content from the LLM response, defaults to OpenRouter structured output
     def _extract_content_from_response(self, response):
-        # Default implementation for OpenRouter
         if "choices" in response and response["choices"]:
             return response["choices"][0]["message"]["content"]
         
         print(f"Cannot parse response from LLM: {response}")
         return ""
 
+    # Process the LLM response to extract the action
     def _process_llm_response(self, response):
         success = False
         content = ""
-        action = None
+        action = {"code": "", "message": ""}
         error_message = ""
+        
         try:
-            # Extract content from the response
             content = self._extract_content_from_response(response)
-
-            if content == "":
-                print(f"Error: Could not extract content from response. Received: {response}")
-                action = { "code": "", "message": "" }
+            if not content:
+                print(f"Error: Empty content from LLM response. Full response: {response}")
                 error_message = "Unable to extract content from LLM response"
                 return content, action, success, error_message
 
@@ -283,33 +255,45 @@ class BaseLLMAgent(MinecraftAgent):
             start = content.find("{")
             end = content.rfind("}") + 1
             content_to_parse = content[start:end]
-
             if content_to_parse == "":
                 print(f"Error: Could not parse JSON in response. Received: {content}")
-                action = { "code": "", "message": "" }
                 error_message = "Unable to parse JSON from LLM response"
                 return content, action, success, error_message
 
-            # Parse the content string as JSON
+            # Parse the content string as JSON and extract the code and message
             try:
                 json_content = json.loads(content_to_parse)
-                action = { "code": json_content["code"] if "code" in json_content else "", "message": json_content["message"] if "message" in json_content else "" }
-                success = True
+                action = {
+                    "code": json_content.get("code", ""),
+                    "message": json_content.get("message", "")
+                }
+                success = True # Success! Let's return the action
+                return content, action, success, error_message    
+                
             except Exception as e:
                 print(f"Unable to parse JSON from LLM response for content: {content_to_parse} with error: {e}")
                 error_message = "Unable to parse JSON from LLM response"
                 return content, action, success, error_message
-
+            
         except Exception as e:
-            print(f"Error: {e}")
-            error_message = str(e) if e else ""
+            print(f"Unexpected error processing LLM response: {e}")
+            error_message = f"Error processing LLM response: {str(e)}"
+            return content, action, success, error_message
 
-        return content, action, success, error_message
-    
-# finally, lets serve our agent!
+    # Utility function to truncate the prompt to 2000 characters for more readable logs
+    def __truncate_prompt(self, prompt):
+        truncated_prompt = []
+        for p in prompt:
+            truncated_p = p.copy()  # Create a shallow copy of the dict
+            if len(truncated_p["content"]) > 2000:
+                truncated_p["content"] = truncated_p["content"][:2000] + "..."
+            truncated_prompt.append(truncated_p)
+        return truncated_prompt
+
+# Finally, lets serve our agent!
 if __name__ == "__main__":    
-    # this creates a web server and an SSH tunnel (so our agent has a stable public URL)
+    # Create a web server and SSH tunnel for a stable public URL
     app, connection_info = AgentManager.serve(BaseLLMAgent, create_public_url=True)
     print(f"Started agent, now reachable at URL: {connection_info}", flush=True)
 
-# now go to app.kradle.ai and run this agent against a challenge!
+# Now go to app.kradle.ai and run this agent against a challenge!

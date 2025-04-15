@@ -55,6 +55,8 @@ class AgentManagerMock:
             available_events=data.get("available_events"),
         )
 
+        self.agent.log = lambda message: print(f"Agent log: {str(message)[:60]+" <truncated>..." if message is not None else ''}")
+
         try:
             # Initialize the agent
             init_response = self.agent.init_participant(challenge_info)

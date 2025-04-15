@@ -4,7 +4,7 @@
 from kradle import Experiment
 from dotenv import load_dotenv
 from kradle import AgentManager
-from llm_agent import LLMAgent
+from base_llm_agent import BaseLLMAgent
 from threading import Thread
 from dataclasses import asdict
 import time
@@ -15,9 +15,9 @@ load_dotenv()
 # Start the agent in a separate thread
 def start_agent():
     print("Starting agent service...")
-    print("Model: ", LLMAgent.model)
-    print("Persona: ", LLMAgent.persona)
-    app, connection_info = AgentManager.serve(LLMAgent, create_public_url=True)
+    print("Model: ", BaseLLMAgent.model)
+    print("Persona: ", BaseLLMAgent.persona)
+    app, connection_info = AgentManager.serve(BaseLLMAgent, create_public_url=True)
 
 Thread(target=start_agent).start()
 time.sleep(5) # TODO: implement better way to wait for agent to start
@@ -30,7 +30,7 @@ experiment = Experiment(
     
     # Define participating agents
     participants=[
-        {"agent": LLMAgent.username}
+        {"agent": BaseLLMAgent.username}
         #{"agent": "python1", "role": "builder"},  
         #{"agent": "survivor1", "role": "defender"},
         #{"agent": "survivor1", "role": "builder"},
@@ -52,8 +52,8 @@ file_name = f"experiment_results_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
 # Save json with logs to a file
 file_json = dict()
 file_json["variables"] = dict()
-file_json["variables"]["model"] = LLMAgent.model
-file_json["variables"]["persona"] = LLMAgent.persona
+file_json["variables"]["model"] = BaseLLMAgent.model
+file_json["variables"]["persona"] = BaseLLMAgent.persona
 file_json = file_json | asdict(experiment_results)
 with open(file_name, 'w') as f:
     f.write(json.dumps(file_json, indent=4, default=str))
