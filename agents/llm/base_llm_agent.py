@@ -62,17 +62,7 @@ class BaseLLMAgent(MinecraftAgent):
         
         # Log initialization info to console
         print(f"Initializing agent for participant ID: {self.participant_id} with username: {self.username}")
-        print(f"Persona: {self.memory.persona}")
-        print(f"Model: {self.memory.model}")
         print(f"Task: {self.memory.task}")
-
-        # self.log() lets us log information to the Kradle dashboard (left pane in the session viewer)
-        self.log(
-            {
-                "persona": self.memory.persona,
-                "model": self.memory.model,
-            }
-        )
 
         # Tell Kradle what events we want to listen to
         return InitParticipantResponse({"listenTo": [MinecraftEvent.CHAT, MinecraftEvent.COMMAND_EXECUTED, MinecraftEvent.MESSAGE, MinecraftEvent.IDLE]})

@@ -8,19 +8,19 @@ from kradle import (AgentManager, JSON_RESPONSE_FORMAT)
 load_dotenv()
 
 # Default configuration settings
-DEFAULT_MODEL = "llama3.2"  # refer to https://openrouter.ai/models for all available models
+DEFAULT_USERNAME = os.getenv("USERNAME") or "python-llm-agent" # this must be different for each agent class
+DEFAULT_MODEL = os.getenv("MODEL") or "google/gemini-2.0-flash-001"  # refer to https://openrouter.ai/models for all available models
 DEFAULT_PERSONA = "you are a cool resourceful agent. you really want to achieve the task that has been given to you."
 DEFAULT_LLM_PROVIDER = os.getenv("LLM_PROVIDER") or "openrouter"
-DEFAULT_USERNAME = "llm-agent"
 
-# Factory method to create LLMAgent classes with custom settings
+# Factory method to create LLMAgent classes with custom configuration
 def create_llm_agent_class(agent_config=None):
     # Set default values for all configuration parameters
     agent_config = agent_config or {}
     agent_config["username"] = agent_config.get('username', DEFAULT_USERNAME)
-    agent_config["llm_provider"] = agent_config.get('llm_provider', DEFAULT_LLM_PROVIDER)
     agent_config["model"] = agent_config.get('model', DEFAULT_MODEL)
     agent_config["persona"] = agent_config.get('persona', DEFAULT_PERSONA)
+    agent_config["llm_provider"] = agent_config.get('llm_provider', DEFAULT_LLM_PROVIDER)
     
     # Extends the BaseLLMAgent class to add support for Ollama
     class CustomLLMAgent(BaseLLMAgent):
@@ -39,9 +39,8 @@ def create_llm_agent_class(agent_config=None):
 
             # Set additional configuration
             self.memory.llm_provider = self.config.get('llm_provider')
-            self.memory.wait_for_llm = False
-            self.memory.delay_after_action = self.config.get('delay_after_action')
-            self.memory.max_retries = self.config.get('max_retries')
+            self.memory.delay_after_action = self.config.get('delay_after_action', self.memory.delay_after_action)
+            self.memory.history_num_conversation_turns = self.config.get('history_num_conversation_turns', None)
             
             return response
         
@@ -84,6 +83,12 @@ def create_llm_agent_class(agent_config=None):
                 # Use the parent class implementation for OpenRouter
                 return super()._extract_content_from_response(response)
 
+        def _build_history_prompt(self):
+            if self.memory.history_num_conversation_turns is not None:
+                return self.memory.llm_transcript[-self.memory.history_num_conversation_turns:]
+            else:
+                return super()._build_history_prompt()
+
         def __print_prompt(self, prompt):
             print("---PROMPT---")
             for p in prompt:
@@ -95,11 +100,8 @@ def create_llm_agent_class(agent_config=None):
     return CustomLLMAgent
 
 # Create the default LLMAgent class for backward compatibility
-LLMAgent = create_llm_agent_class()
-
 if __name__ == "__main__":
-    from kradle import AgentManager
-    
+    LLMAgent = create_llm_agent_class()
     # Create a web server and an SSH tunnel
     app, connection_info = AgentManager.serve(LLMAgent, create_public_url=True)
     print(f"Started agent, now reachable at URL: {connection_info}", flush=True) 
