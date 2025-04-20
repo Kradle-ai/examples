@@ -1,7 +1,8 @@
 # test if the LLM agent is able to respond with json to a simple init and event prompt
 
 from agent_manager_mock import AgentManagerMock
-from agent import LLMBasedAgent
+from base_llm_agent import BaseLLMAgent
+from llm_agent import create_llm_agent_class
 from samples.sample_data import SAMPLE_INIT_DATA, SAMPLE_EVENT_INITIAL_STATE, SAMPLE_EVENT_COMMAND_EXECUTED_ERROR
 
 def test_code_contains_await(event, event_name):
@@ -10,7 +11,10 @@ def test_code_contains_await(event, event_name):
     else:
         print(f"❌ Test failed: {event_name}['code'] does not contain 'await'")
 
-agent_test_manager = AgentManagerMock(LLMBasedAgent)
+# agent_class = create_llm_agent_class({ "model":"qwen2.5-coder:7b"})
+agent_class = BaseLLMAgent
+
+agent_test_manager = AgentManagerMock(agent_class)
 
 print("================================================")
 agent_test_manager.init_agent(SAMPLE_INIT_DATA)
