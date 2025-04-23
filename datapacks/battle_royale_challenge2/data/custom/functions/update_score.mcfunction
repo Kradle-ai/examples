@@ -1,1 +1,0 @@
-# This can be empty as scores are handled in end_challenge.mcfunction 

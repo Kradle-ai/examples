@@ -1,0 +1,17 @@
+{
+  "slug": "template",
+  "name": "template",
+  "visibility": "public",
+  "domain": "minecraft",
+  "world": "team-kradle:flat-world",
+  "task": "Task the participants need to complete to win the challenge.",
+  "objective": {
+    "fieldName": "successful_run_count",
+    "direction": "maximize"
+  },
+  "challengeConfig": {
+    "cheat": false,
+    "datapack": true,
+    "gameMode": "survival"
+  }
+}
