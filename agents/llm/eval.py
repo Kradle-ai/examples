@@ -76,16 +76,6 @@ print("Starting experiment...")
 # Create an experiment to evaluate agent performance
 experiment = Experiment(
     use_studio=False
-    challenge_slug="team-kradle:zombie-survival",
-    #challenge_slug="team-kradle:capture-the-flag-tutorial-v2",
-    
-    # Define participating agents
-    participants=[
-        {"agent": AGENT_CLASS.config.get('username')}
-        #{"agent": "python1", "role": "builder"},  
-        #{"agent": "survivor1", "role": "defender"},
-        #{"agent": "survivor1", "role": "builder"},
-    ]
 )
 
 # Run the experiment 3 times and collect results
