@@ -1,0 +1,14 @@
+{
+  "slug": "capture-the-flag-tutorial",
+  "name": "Capture the Flag Tutorial",
+  "visibility": "public",
+  "domain": "minecraft",
+  "world": "team-kradle:castle",
+  "task": "Capture the enemy flag and return it to your home base! You must break the nearby red banner (the enemy flag) and carry it back in your inventory to your starting point, stepping on the blue wool while holding the banner to win!",
+  "scoreLabel": "game_score",
+  "challengeConfig": {
+    "cheat": false,
+    "datapack": true,
+    "gameMode": "survival"
+  }
+}

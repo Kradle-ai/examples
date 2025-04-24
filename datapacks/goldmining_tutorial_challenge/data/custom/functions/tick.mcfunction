@@ -1,2 +1,0 @@
-execute if score game_over tutorial matches 0 run function custom:check_scores
-execute if score game_over tutorial matches 0 as @a[gamemode=survival] unless score @s has_pickaxe matches 1 run function custom:give_pickaxe

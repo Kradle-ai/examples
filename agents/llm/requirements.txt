@@ -1,2 +1,2 @@
-kradle==0.5.2
+kradle==0.5.4
 watchfiles==1.0.5

@@ -1,1 +1,0 @@
-execute if score game_active challenge matches 1 run function custom:check_player_inventory
