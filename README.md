@@ -6,4 +6,4 @@ Docs: https://app.kradle.ai/docs
 
 [Example Agents](/agents/)
 
-[Example Datapacks](/datapacks/)
+[Example Challenges](/challenges/)
