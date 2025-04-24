@@ -28,7 +28,7 @@ def create_llm_agent_class(agent_config=None):
         config = agent_config
         username = config.get('username')
         display_name = config.get('display_name', username + " (llm)")
-        description = config.get('description', "LLM-based agent using model " + config.get('model') + " and persona " + config.get('persona'))
+        description = config.get('description', "LLM-based agent using model " + config.get('model'))
 
         def init_participant(self, challenge_info):
             # Call the parent class's init_participant method
