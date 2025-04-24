@@ -40,7 +40,7 @@ class HelloWorldAgent(MinecraftAgent):
 
         # Respond with a hello world message
         return {
-            "command": "",
+            "code": "",
             "message": "Hello World!",
             "delay": 100
         }
