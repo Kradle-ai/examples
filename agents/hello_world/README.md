@@ -11,6 +11,8 @@ KRADLE_API_KEY=your_key_here
 
 2. Install dependencies:
 ```bash
+python -mvenv venv
+. venv/bin/activate
 pip install -r requirements.txt
 ```
 
