@@ -1,18 +1,17 @@
 # LLM Based Agent
 
-A Minecraft agent that uses GPT-4 through OpenRouter API to make decisions and interact with the game environment.
+A Minecraft agent that uses an LLM through OpenRouter API to make decisions and interact with the game environment.
 
 ## Setup
 
 1. Create a `.env` file with your Kradle API key and OpenRouter API key:
 ```
 KRADLE_API_KEY=your_key_here
-OPENROUTER_API_KEY=your_key_here
 ```
 
 2. Install dependencies:
 ```bash
-python -mvenv venv
+python -m venv venv
 . venv/bin/activate
 pip install -r requirements.txt
 ```
