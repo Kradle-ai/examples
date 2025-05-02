@@ -1,12 +1,15 @@
 # This base class uses the OpenRouter API to select, prompt, and get the response from the LLM of choice
 from kradle import (AgentManager, MinecraftAgent, JSON_RESPONSE_FORMAT)
 from kradle.models import MinecraftEvent, InitParticipantResponse
+from classproperty import classproperty
 from dotenv import load_dotenv
 import requests
 import json
 import os
 
-from prompts.config import (coding_prompt, coding_examples, creative_mode_prompt, skills_prompt, examples_prompt, persona_prompt, agent_prompt)
+# Use a module import to load the prompts rather than creating unqualified names
+# here to allow hot reloading of the prompts.
+from prompts import config
 
 load_dotenv()
 
@@ -27,12 +30,29 @@ MAX_RETRIES = 3 # Number of times the LLM will retry to generate a valid respons
 # Kradle can create multiple instances of your agent (eg. adding two of the same agent to a challenge)
 # Each instance of this class is called a 'participant'
 class BaseLLMAgent(MinecraftAgent):
-    persona = PERSONA
-    model = MODEL
+    # These class properties describe the agent's configuration to the Kradle
+    # agent manager. They're implemented as functions here to allow hot
+    # reloading of the values above.
 
-    username = USERNAME
-    display_name = username + " (llm)"  # display name of the agent
-    description = "This is an LLM-based agent that can be used to perform tasks in Minecraft."
+    @classproperty
+    def persona(cls):
+        return PERSONA
+    
+    @classproperty
+    def model(cls):
+        return MODEL
+
+    @classproperty
+    def username(cls):
+        return USERNAME
+    
+    @classproperty
+    def display_name(cls):
+        return cls.username + " (llm)"  # display name of the agent
+
+    @classproperty
+    def description(cls):
+        return "This is an LLM-based agent that can be used to perform tasks in Minecraft."
 
     # This method is called when the session starts
     # Return a list of in-game events you wish to listen to
@@ -115,35 +135,35 @@ class BaseLLMAgent(MinecraftAgent):
         system_prompt = []
 
         # Build coding prompt from template, including task, agent_modes, and creative_mode
-        prompt = coding_prompt
+        prompt = config.coding_prompt
         prompt = prompt.replace("$NAME", observation.name)
         prompt = prompt.replace("$TASK", self.memory.task)
         prompt = prompt.replace("$AGENT_MODE", str(self.memory.agent_modes))
         
         if self.memory.agent_modes["mcmode"] == "creative":
-            prompt = prompt.replace("$CREATIVE_MODE", creative_mode_prompt)
+            prompt = prompt.replace("$CREATIVE_MODE", config.creative_mode_prompt)
         else:
             prompt = prompt.replace("$CREATIVE_MODE", "You are in survival mode.")
 
         system_prompt.append({"role": "system", "content": prompt})
 
         # Skills prompt with code documentation to give the agent context about the available commands
-        prompt = skills_prompt
+        prompt = config.skills_prompt
         prompt = prompt.replace("$CODE_DOCS", str(self.memory.js_functions))
         system_prompt.append({"role": "system", "content": prompt})
 
         # Minecraft modes (creative, self_preservation, etc) available in the challenge
-        prompt = agent_prompt
+        prompt = config.agent_prompt
         prompt = prompt.replace("$AGENT_MODE", str(self.memory.agent_modes))
         system_prompt.append({"role": "system", "content": prompt})
 
         # Examples prompt
-        prompt = examples_prompt
-        prompt = prompt.replace("$EXAMPLES", str(coding_examples))
+        prompt = config.examples_prompt
+        prompt = prompt.replace("$EXAMPLES", str(config.coding_examples))
         system_prompt.append({"role": "system", "content": prompt})
 
         # Persona prompt
-        prompt = persona_prompt
+        prompt = config.persona_prompt
         prompt = prompt.replace("$PERSONA", self.memory.persona)
         system_prompt.append({"role": "system", "content": prompt})
 
