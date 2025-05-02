@@ -69,10 +69,6 @@ class BaseLLMAgent(MinecraftAgent):
         self.memory.agent_modes = challenge_info.agent_modes  # Minecraft modes (creative, self_preservation, etc)
         self.memory.js_functions = challenge_info.js_functions  # available JavaScript functions
         self.memory.delay_after_action = DELAY_AFTER_ACTION
-        
-        # Store agent configuration in memory for resilience
-        self.memory.persona = BaseLLMAgent.persona
-        self.memory.model = BaseLLMAgent.model
 
         # Look for OpenRouter API key in environment variables, falling back to Kradle API if not found
         self.memory.openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
@@ -164,7 +160,7 @@ class BaseLLMAgent(MinecraftAgent):
 
         # Persona prompt
         prompt = config.persona_prompt
-        prompt = prompt.replace("$PERSONA", self.memory.persona)
+        prompt = prompt.replace("$PERSONA", type(self).persona)
         system_prompt.append({"role": "system", "content": prompt})
 
         return system_prompt
@@ -189,7 +185,7 @@ class BaseLLMAgent(MinecraftAgent):
         print(f"LLM Prompt: {llm_prompt}")
 
         json_payload = {
-            "model": self.memory.model,
+            "model": type(self).model,
             "messages": llm_prompt,
             "require_parameters": True,
         }
@@ -201,7 +197,7 @@ class BaseLLMAgent(MinecraftAgent):
         content, action, success, error_message = self._process_llm_response(response)
 
         # Log interaction to Kradle dashboard
-        self.log({"prompt": self.__truncate_prompt(llm_prompt), "model": self.memory.model, "response": content})
+        self.log({"prompt": self.__truncate_prompt(llm_prompt), "model": type(self).model, "response": content})
 
         # Update conversation history for future LLM context
         self.memory.llm_transcript.extend([
