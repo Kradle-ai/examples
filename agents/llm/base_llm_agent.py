@@ -197,7 +197,7 @@ class BaseLLMAgent(MinecraftAgent):
         content, action, success, error_message = self._process_llm_response(response)
 
         # Log interaction to Kradle dashboard
-        self.log({"prompt": self.__truncate_prompt(llm_prompt), "model": type(self).model, "response": content})
+        self.log({"prompt": self._truncate_prompt(llm_prompt), "model": type(self).model, "response": content})
 
         # Update conversation history for future LLM context
         self.memory.llm_transcript.extend([
@@ -287,7 +287,7 @@ class BaseLLMAgent(MinecraftAgent):
             return content, action, success, error_message
 
     # Utility function to truncate the prompt to 2000 characters for more readable logs
-    def __truncate_prompt(self, prompt):
+    def _truncate_prompt(self, prompt):
         truncated_prompt = []
         for p in prompt:
             truncated_p = p.copy()  # Create a shallow copy of the dict
