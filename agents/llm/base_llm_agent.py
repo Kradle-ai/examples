@@ -93,7 +93,7 @@ class BaseLLMAgent(MinecraftAgent):
         observation_summary = self._format_observation(observation)
         
         print(f"\033[91m########################################################")
-        print(f"\nObservation Summary:\n{observation_summary}")
+        print(f"\nObservation Summary!!:\n{observation_summary}")
         print(f"\033[91m########################################################\033[0m")
 
         # Generate and return the agent's response
@@ -112,19 +112,26 @@ class BaseLLMAgent(MinecraftAgent):
             if observation.inventory
             else "None"
         )
-
+        
         # Return string with everything the LLM needs to know about the state of the game
-        return (
+        formatted_output = (
             f"Event received: {observation.event if observation.event else 'None'}\n\n"
-            f"{observation.output if observation.output else 'Output: None'}\n\n"
+            f"Command Output:\n{observation.output if observation.output else 'Output: None'}\n\n"
             f"Position: {observation.position}\n\n"
-            f"Latest Chat: {observation.chat_messages}\n\n" if observation.chat_messages else ""
+        )
+        
+        if observation.chat_messages:
+            formatted_output += f"Latest Chat: {observation.chat_messages}\n\n"
+            
+        formatted_output += (
             f"Visible Players: {', '.join(observation.players) if observation.players else 'None'}\n\n"
             f"Visible Blocks: {', '.join(observation.blocks) if observation.blocks else 'None'}\n\n"
             f"Visible Entities: {', '.join(observation.entities) if observation.entities else 'None'}\n\n"
             f"Inventory: {inventory_summary}\n\n"
             f"Health: {observation.health * 100}/100"
         )
+        
+        return formatted_output
 
     # Builds the system prompt for the agent
     def _build_system_prompt(self, observation):
