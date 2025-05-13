@@ -1,12 +1,15 @@
 # This base class uses the OpenRouter API to select, prompt, and get the response from the LLM of choice
 from kradle import (AgentManager, MinecraftAgent, JSON_RESPONSE_FORMAT)
 from kradle.models import MinecraftEvent, InitParticipantResponse
+from classproperty import classproperty
 from dotenv import load_dotenv
 import requests
 import json
 import os
 
-from prompts.config import (coding_prompt, coding_examples, creative_mode_prompt, skills_prompt, examples_prompt, persona_prompt, agent_prompt)
+# Use a module import to load the prompts rather than creating unqualified names
+# here to allow hot reloading of the prompts.
+from prompts import config
 
 load_dotenv()
 
@@ -27,12 +30,29 @@ MAX_RETRIES = 3 # Number of times the LLM will retry to generate a valid respons
 # Kradle can create multiple instances of your agent (eg. adding two of the same agent to a challenge)
 # Each instance of this class is called a 'participant'
 class BaseLLMAgent(MinecraftAgent):
-    persona = PERSONA
-    model = MODEL
+    # These class properties describe the agent's configuration to the Kradle
+    # agent manager. They're implemented as functions here to allow hot
+    # reloading of the values above.
 
-    username = USERNAME
-    display_name = username + " (llm)"  # display name of the agent
-    description = "This is an LLM-based agent that can be used to perform tasks in Minecraft."
+    @classproperty
+    def persona(cls):
+        return PERSONA
+    
+    @classproperty
+    def model(cls):
+        return MODEL
+
+    @classproperty
+    def username(cls):
+        return USERNAME
+    
+    @classproperty
+    def display_name(cls):
+        return cls.username + " (llm)"  # display name of the agent
+
+    @classproperty
+    def description(cls):
+        return "This is an LLM-based agent that can be used to perform tasks in Minecraft."
 
     # This method is called when the session starts
     # Return a list of in-game events you wish to listen to
@@ -49,10 +69,6 @@ class BaseLLMAgent(MinecraftAgent):
         self.memory.agent_modes = challenge_info.agent_modes  # Minecraft modes (creative, self_preservation, etc)
         self.memory.js_functions = challenge_info.js_functions  # available JavaScript functions
         self.memory.delay_after_action = DELAY_AFTER_ACTION
-        
-        # Store agent configuration in memory for resilience
-        self.memory.persona = BaseLLMAgent.persona
-        self.memory.model = BaseLLMAgent.model
 
         # Look for OpenRouter API key in environment variables, falling back to Kradle API if not found
         self.memory.openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
@@ -96,55 +112,62 @@ class BaseLLMAgent(MinecraftAgent):
             if observation.inventory
             else "None"
         )
-
+        
         # Return string with everything the LLM needs to know about the state of the game
-        return (
+        formatted_output = (
             f"Event received: {observation.event if observation.event else 'None'}\n\n"
-            f"{observation.output if observation.output else 'Output: None'}\n\n"
+            f"Command Output:\n{observation.output if observation.output else 'Output: None'}\n\n"
             f"Position: {observation.position}\n\n"
-            f"Latest Chat: {observation.chat_messages}\n\n" if observation.chat_messages else ""
+        )
+        
+        if observation.chat_messages:
+            formatted_output += f"Latest Chat: {observation.chat_messages}\n\n"
+            
+        formatted_output += (
             f"Visible Players: {', '.join(observation.players) if observation.players else 'None'}\n\n"
             f"Visible Blocks: {', '.join(observation.blocks) if observation.blocks else 'None'}\n\n"
             f"Visible Entities: {', '.join(observation.entities) if observation.entities else 'None'}\n\n"
             f"Inventory: {inventory_summary}\n\n"
             f"Health: {observation.health * 100}/100"
         )
+        
+        return formatted_output
 
     # Builds the system prompt for the agent
     def _build_system_prompt(self, observation):
         system_prompt = []
 
         # Build coding prompt from template, including task, agent_modes, and creative_mode
-        prompt = coding_prompt
+        prompt = config.coding_prompt
         prompt = prompt.replace("$NAME", observation.name)
         prompt = prompt.replace("$TASK", self.memory.task)
         prompt = prompt.replace("$AGENT_MODE", str(self.memory.agent_modes))
         
         if self.memory.agent_modes["mcmode"] == "creative":
-            prompt = prompt.replace("$CREATIVE_MODE", creative_mode_prompt)
+            prompt = prompt.replace("$CREATIVE_MODE", config.creative_mode_prompt)
         else:
             prompt = prompt.replace("$CREATIVE_MODE", "You are in survival mode.")
 
         system_prompt.append({"role": "system", "content": prompt})
 
         # Skills prompt with code documentation to give the agent context about the available commands
-        prompt = skills_prompt
+        prompt = config.skills_prompt
         prompt = prompt.replace("$CODE_DOCS", str(self.memory.js_functions))
         system_prompt.append({"role": "system", "content": prompt})
 
         # Minecraft modes (creative, self_preservation, etc) available in the challenge
-        prompt = agent_prompt
+        prompt = config.agent_prompt
         prompt = prompt.replace("$AGENT_MODE", str(self.memory.agent_modes))
         system_prompt.append({"role": "system", "content": prompt})
 
         # Examples prompt
-        prompt = examples_prompt
-        prompt = prompt.replace("$EXAMPLES", str(coding_examples))
+        prompt = config.examples_prompt
+        prompt = prompt.replace("$EXAMPLES", str(config.coding_examples))
         system_prompt.append({"role": "system", "content": prompt})
 
         # Persona prompt
-        prompt = persona_prompt
-        prompt = prompt.replace("$PERSONA", self.memory.persona)
+        prompt = config.persona_prompt
+        prompt = prompt.replace("$PERSONA", type(self).persona)
         system_prompt.append({"role": "system", "content": prompt})
 
         return system_prompt
@@ -169,7 +192,7 @@ class BaseLLMAgent(MinecraftAgent):
         print(f"LLM Prompt: {llm_prompt}")
 
         json_payload = {
-            "model": self.memory.model,
+            "model": type(self).model,
             "messages": llm_prompt,
             "require_parameters": True,
         }
@@ -181,7 +204,7 @@ class BaseLLMAgent(MinecraftAgent):
         content, action, success, error_message = self._process_llm_response(response)
 
         # Log interaction to Kradle dashboard
-        self.log({"prompt": self.__truncate_prompt(llm_prompt), "model": self.memory.model, "response": content})
+        self.log({"prompt": self._truncate_prompt(llm_prompt), "model": type(self).model, "response": content})
 
         # Update conversation history for future LLM context
         self.memory.llm_transcript.extend([
@@ -271,7 +294,7 @@ class BaseLLMAgent(MinecraftAgent):
             return content, action, success, error_message
 
     # Utility function to truncate the prompt to 2000 characters for more readable logs
-    def __truncate_prompt(self, prompt):
+    def _truncate_prompt(self, prompt):
         truncated_prompt = []
         for p in prompt:
             truncated_p = p.copy()  # Create a shallow copy of the dict
