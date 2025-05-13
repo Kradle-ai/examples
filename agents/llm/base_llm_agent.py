@@ -93,7 +93,7 @@ class BaseLLMAgent(MinecraftAgent):
         observation_summary = self._format_observation(observation)
         
         print(f"\033[91m########################################################")
-        print(f"\nObservation Summary!!:\n{observation_summary}")
+        print(f"\nObservation Summary:\n{observation_summary}")
         print(f"\033[91m########################################################\033[0m")
 
         # Generate and return the agent's response
