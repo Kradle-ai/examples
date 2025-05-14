@@ -53,7 +53,7 @@ def watch_and_reload() -> None:
     """Run the application with hot reloading enabled."""
     # Start the development server with hot reloading
     run_process(
-        ".",
+        "dev_base_llm_agent.py",
         target=_dev,
         callback=_log_restart,
         debounce=500,  # Debounce time in milliseconds

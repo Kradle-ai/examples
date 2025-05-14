@@ -97,9 +97,8 @@ class BaseLLMAgent(MinecraftAgent):
         print(f"\033[91m########################################################\033[0m")
 
         # Generate and return the agent's response
-        response = self.__generate_llm_agent_action(observation_summary, observation)
+        response = self._generate_llm_agent_action(observation_summary, observation)
         print(f"Participant '{self.participant_id}' Agent Response: {response}")
-
         return response
 
     # Convert observation object to a string for the LLM prompt
@@ -177,7 +176,7 @@ class BaseLLMAgent(MinecraftAgent):
         return self.memory.llm_transcript[-5:] # last 5 messages from the conversation history
 
     # Generate a complete agent response by querying the LLM and processing the result
-    def __generate_llm_agent_action(self, observation_summary, observation, max_retries=MAX_RETRIES):
+    def _generate_llm_agent_action(self, observation_summary, observation, max_retries=MAX_RETRIES):
         if max_retries < MAX_RETRIES:
             print(f"\033[91m########################################################")
             print(f"\033[91mRetrying LLM response for the {MAX_RETRIES - max_retries} time\033[0m")
@@ -229,7 +228,7 @@ class BaseLLMAgent(MinecraftAgent):
                 "content": f"your last response was not valid because: {error_message}"
             })
 
-            return self.__generate_llm_agent_action(observation_summary, observation, max_retries - 1)
+            return self._generate_llm_agent_action(observation_summary, observation, max_retries - 1)
     
     # Make a request to the LLM API, defaults to OpenRouter (override for other LLM providers)
     def _make_llm_request(self, json_payload):
