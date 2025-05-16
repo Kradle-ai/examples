@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from kradle import AgentManager
 from llm_agent import create_llm_agent_class
 from dataclasses import asdict
-import time
 import json
 
 load_dotenv()
@@ -50,10 +49,10 @@ models = [{
 agent_classes = []
 for model in models:
     for persona in personas:
-        agent_class = create_llm_agent_class({ 
-            "username": f"{model['shortname']}-{persona['shortname']}", 
-            "model": model["model_id"], 
-            "persona": persona["persona"] 
+        agent_class = create_llm_agent_class({
+            "username": f"{model['shortname']}-{persona['shortname']}",
+            "model": model["model_id"],
+            "persona": persona["persona"]
         })
         agent_classes.append(agent_class)
 

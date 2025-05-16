@@ -18,7 +18,7 @@ class AgentManagerMock:
     def init_agent(self, data) -> InitParticipantResponse:
         """
         Create an agent with initdata
-        
+
         Args:
             data (dict): Dictionary containing event data including:
                 - participantId: ID of the participant
@@ -27,7 +27,7 @@ class AgentManagerMock:
                 - agent_modes: Modes of the agent
                 - js_functions: JavaScript functions to be used
                 - available_events: Events to be listened to
-                
+
         Returns:
             The response from the agent's init_participant method
         """
@@ -35,10 +35,10 @@ class AgentManagerMock:
         for field in required_fields:
             if data.get(field) is None:
                 raise ValueError(f"{field} is required in the init data")
-            
+
         if (self.agent is not None):
             raise ValueError("Agent already initialized")
-        
+
         # Create the agent instance
         self.agent = self.agent_class(
             api_client=self._api_client,
@@ -70,7 +70,7 @@ class AgentManagerMock:
     def handle_event(self, data) -> OnEventResponse:
         """
         Handle an event for an agent.
-        
+
         Args:
             data (dict): Dictionary containing event data including:
                 - participantId: ID of the participant
@@ -80,7 +80,7 @@ class AgentManagerMock:
             username (str, optional): Username of the agent to handle the event
 
         See sample_data.py for sample event data or https://app.kradle.ai/docs/how-kradle-works
-            
+
         Returns:
             The response from the agent's on_event method
         """
@@ -88,7 +88,7 @@ class AgentManagerMock:
         for field in required_fields:
             if data.get(field) is None:
                 raise ValueError(f"{field} is required in the event data for the observation")
-            
+
         participant_id = data.get("participantId")
 
         observation = Observation.from_event(data)
