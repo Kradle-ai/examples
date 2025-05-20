@@ -1,3 +1,5 @@
+from typing import Any, Optional
+from kradle import MinecraftAgent
 from kradle.models import ChallengeInfo, Observation, InitParticipantResponse, OnEventResponse
 from kradle.api.client import KradleAPI
 from kradle.logger import KradleLogger
@@ -9,15 +11,15 @@ class AgentManagerMock:
     This allows for direct testing of agents by passing data as parameters.
     """
 
-    def __init__(self, agent_class):
+    def __init__(self, agent_class: type[MinecraftAgent]) -> None:
         self.agent_class = agent_class
-        self.agent = None
+        self.agent: Optional[MinecraftAgent] = None
         self._api_client = KradleAPI()
         self._logger = KradleLogger()
 
-    def init_agent(self, data) -> InitParticipantResponse:
+    def init_agent(self, data: dict[str, Any]) -> InitParticipantResponse:
         """
-        Create an agent with initdata
+        Create an agent with an initial challenge.
 
         Args:
             data (dict): Dictionary containing event data including:
@@ -47,15 +49,18 @@ class AgentManagerMock:
         )
 
         challenge_info = ChallengeInfo(
-            participant_id=data.get("participantId"),
-            run_id=data.get("runId"),
-            task=data.get("task"),
-            agent_modes=data.get("agent_modes"),
-            js_functions=data.get("js_functions"),
-            available_events=data.get("available_events"),
+            participant_id=data["participantId"],
+            run_id=data["runId"],
+            task=data["task"],
+            agent_modes=data["agent_modes"],
+            js_functions=data["js_functions"],
+            available_events=data["available_events"],
         )
 
-        self.agent.log = lambda message: print(f"Agent log: {str(message)[:60]+" <truncated>..." if message is not None else ''}")
+        def log(message: str):
+            print(f"Agent log: {str(message)[:60]+" <truncated>..." if message is not None else ''}")
+
+        self.agent.log = log  # type: ignore
 
         try:
             # Initialize the agent
@@ -66,6 +71,7 @@ class AgentManagerMock:
             return init_response
         except ValueError as e:
             print(f"Failed to initialize agent: {str(e)}")
+            raise e
 
     def handle_event(self, data) -> OnEventResponse:
         """
@@ -84,7 +90,24 @@ class AgentManagerMock:
         Returns:
             The response from the agent's on_event method
         """
-        required_fields = ["name", "event", "observationId", "participantId", "executing", "chat_messages", "position", "health", "health_status", "weather", "time", "inventory", "blocks", "players", "entities", "craftable"]
+        required_fields = [
+            "name",
+            "event",
+            "observationId",
+            "participantId",
+            "executing",
+            "chat_messages",
+            "position",
+            "health",
+            "health_status",
+            "weather",
+            "time",
+            "inventory",
+            "blocks",
+            "players",
+            "entities",
+            "craftable",
+        ]
         for field in required_fields:
             if data.get(field) is None:
                 raise ValueError(f"{field} is required in the event data for the observation")
@@ -94,6 +117,7 @@ class AgentManagerMock:
         observation = Observation.from_event(data)
         try:
             start_time = time.time()
+            assert self.agent is not None
             result = self.agent.on_event(observation)
             end_time = time.time()
             execution_time = end_time - start_time
