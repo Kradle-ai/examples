@@ -9,7 +9,6 @@ import os
 
 # Use a module import to load the prompts rather than creating unqualified names
 # here to allow hot reloading of the prompts.
-from prompting import format_observation
 from prompts import config
 
 load_dotenv()
@@ -91,7 +90,7 @@ class BaseLLMAgent(MinecraftAgent):
         self.memory.game_chat_history.extend(observation.chat_messages)
 
         # Format the observation for the LLM
-        observation_summary = format_observation(observation)
+        observation_summary = self._format_observation(observation)
 
         print(f"\033[91m########################################################")
         print(f"\nObservation Summary:\n{observation_summary}")
@@ -102,6 +101,37 @@ class BaseLLMAgent(MinecraftAgent):
         print(f"Participant '{self.participant_id}' Agent Response: {response}")
 
         return response
+
+    # Convert observation object to a string for the LLM prompt
+    def _format_observation(self, observation):
+        print(f"Minecraft Chat History: {self.memory.game_chat_history}")
+
+        # Let's get everything in our inventory
+        inventory_summary = (
+            ", ".join([f"{count} {name}" for name, count in observation.inventory.items()])
+            if observation.inventory
+            else "None"
+        )
+
+        # Return string with everything the LLM needs to know about the state of the game
+        formatted_output = (
+            f"Event received: {observation.event if observation.event else 'None'}\n\n"
+            f"Command Output:\n{observation.output if observation.output else 'Output: None'}\n\n"
+            f"Position: {observation.position}\n\n"
+        )
+
+        if observation.chat_messages:
+            formatted_output += f"Latest Chat: {observation.chat_messages}\n\n"
+
+        formatted_output += (
+            f"Visible Players: {', '.join(observation.players) if observation.players else 'None'}\n\n"
+            f"Visible Blocks: {', '.join(observation.blocks) if observation.blocks else 'None'}\n\n"
+            f"Visible Entities: {', '.join(observation.entities) if observation.entities else 'None'}\n\n"
+            f"Inventory: {inventory_summary}\n\n"
+            f"Health: {observation.health * 100}/100"
+        )
+
+        return formatted_output
 
     # Builds the system prompt for the agent
     def _build_system_prompt(self, observation):
