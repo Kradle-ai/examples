@@ -1,7 +1,7 @@
 from string import Template
 from typing import Any, Optional, cast
 from typing_extensions import TypeAlias
-from kradle import Agent, Kradle, run
+from kradle import Agent, Context, Kradle
 from kradle.models import ChallengeInfo, MinecraftEvent, Observation
 
 from llm_clients import LLMClient, LLMError, LLMResponse, OpenRouterClient, parse_action_from_response
@@ -41,12 +41,12 @@ def setup(kradle: Kradle) -> Agent:
 
     # This method is called when the session starts.
     @agent.init
-    def init(challenge: ChallengeInfo):
-        run["client"] = OpenRouterClient(MODEL, kradle.api)
-        run["history"] = []
-        run["model"] = MODEL
-        run["persona"] = PERSONA
-        run["delay_after_action"] = DELAY_AFTER_ACTION
+    def init(challenge: ChallengeInfo, context: Context):
+        context["client"] = OpenRouterClient(MODEL, kradle.api)
+        context["history"] = []
+        context["model"] = MODEL
+        context["persona"] = PERSONA
+        context["delay_after_action"] = DELAY_AFTER_ACTION
 
     @agent.event(
         MinecraftEvent.INITIAL_STATE,
@@ -55,35 +55,36 @@ def setup(kradle: Kradle) -> Agent:
         MinecraftEvent.COMMAND_EXECUTED,
         MinecraftEvent.IDLE,
     )
-    def event(observation: Observation):
-        client: LLMClient = run["client"]
+    def event(observation: Observation, context: Context):
+        client: LLMClient = context["client"]
+        history: list[Message] = context["history"]
 
         for attempt in range(MAX_RETRIES):
-            llm_prompt = format_llm_prompt(observation)
+            llm_prompt = format_llm_prompt(observation, context)
             show_heading(llm_prompt, attempt)
 
             # TODO(wilhuff): This still needs simplification work.
             try:
                 response = client.get_chat_completion(llm_prompt)
                 action = parse_action_from_response(response)
-                log_result(llm_prompt, response.content)
+                log_result(llm_prompt, response.content, context)
                 return action
             except LLMError as e:
                 print(f"Error: {e.message_with_details()}")
-                history_push_error(run["history"], str(e))
-                log_result(llm_prompt, e.content)
+                history_push_error(history, str(e))
+                log_result(llm_prompt, e.content, context)
                 continue
             except Exception as e:
                 print(f"Error: {e}")
-                history_push_error(run["history"], str(e))
-                log_result(llm_prompt, response.content if response else None)
+                history_push_error(history, str(e))
+                log_result(llm_prompt, response.content if response else None, context)
                 continue
 
         # If we fall out of the loop, we've failed.
         return {
             "code": "",
             "message": "I'm sorry, I'm having trouble generating a response. Please try again later.",
-            "delay": run["delay_after_action"],
+            "delay": context["delay_after_action"],
         }
 
     return agent
@@ -93,10 +94,10 @@ Message: TypeAlias = dict[str, str]
 Messages: TypeAlias = list[Message]
 
 
-def format_llm_prompt(observation: Observation) -> Messages:
-    challenge = run.challenge_info
-    persona = run["persona"]
-    history = run["history"]
+def format_llm_prompt(observation: Observation, context: Context) -> Messages:
+    challenge = context.challenge_info
+    persona = context["persona"]
+    history = context["history"]
     result = [
         *format_system_prompt(challenge, observation),
         {"role": "system", "content": substitute(config.persona_prompt, persona=persona)},
@@ -205,16 +206,16 @@ def show_heading(llm_prompt: Messages, attempt: int) -> None:
     print(f"LLM Prompt: {llm_prompt}")
 
 
-def log_result(llm_prompt: Messages, response: Optional[str]) -> None:
+def log_result(llm_prompt: Messages, response: Optional[str], context: Context) -> None:
     message = {
         "prompt": truncate_prompt(llm_prompt),
-        "model": run["model"],
+        "model": context["model"],
         "response": response,
     }
 
     # TODO(wilhuff): The type on this API is seemingly wrong
     # ... but the old code worked. Investigate.
-    run.log(cast(str, message))
+    context.log(cast(str, message))
 
 
 # Utility function to truncate the prompt to 2000 characters for more readable logs
