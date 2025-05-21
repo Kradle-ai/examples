@@ -1,26 +1,38 @@
 import json
 import os
+import textwrap
 import threading
 from typing import Any, Protocol, cast, Optional
 
 import requests
-from kradle import JSON_RESPONSE_FORMAT, KradleAPI
+from kradle import JSON_RESPONSE_FORMAT, KradleAPI, OnEventResponse
 
 
 class LLMError(Exception):
+    """An error that occurs when interacting with an LLM."""
+
     def __init__(self, message: str, details: Optional[str] = None, content: Optional[str] = None):
         super().__init__(message)
         self.details = details
         self.content = content
 
-    def message_with_details(self) -> str:
-        if self.details:
-            return f"{str(self)}: {self.details}"
-        else:
-            return str(self)
+
+def message_with_details(error: Exception) -> str:
+    """Returns a string representation of an error, including details if available."""
+    if isinstance(error, LLMError) and error.details:
+        return f"{str(error)}: {error.details}"
+    else:
+        return str(error)
 
 
 class LLMResponse:
+    """The response from an LLM.
+
+    This includes the unparsed message content from the LLM in the `content`
+    property, and the raw JSON response from the LLM API. The raw response will
+    vary based on the LLM API provider.
+    """
+
     def __init__(self, content: str, raw_response: dict[str, Any]):
         self.content = content
         self.raw_response = raw_response
@@ -34,7 +46,6 @@ class LLMClient(Protocol):
         """Returns the message content from the LLM response.
 
         Args:
-            model: The model to use for the LLM.
             messages: The messages to send to the LLM.
 
         Returns:
@@ -46,6 +57,8 @@ class LLMClient(Protocol):
 
 
 class OpenRouterClient(LLMClient):
+    """An LLM client that uses the OpenRouter API."""
+
     def __init__(self, model: str, api: KradleAPI):
         self._model = model
 
@@ -69,6 +82,7 @@ class OpenRouterClient(LLMClient):
             "require_parameters": True,
             "response_format": JSON_RESPONSE_FORMAT,
         }
+
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={"Authorization": f"Bearer {self._api_key}"},
@@ -89,6 +103,8 @@ class OpenRouterClient(LLMClient):
 
 
 class OllamaClient:
+    """An LLM client that uses the Ollama API."""
+
     def __init__(self, model: str):
         self._model = model
 
@@ -107,7 +123,7 @@ class OllamaClient:
             "messages": messages,
             "format": schema,
             "stream": False,
-            "keep_alive": -1  # prevent model from timing out of cache,
+            "keep_alive": -1,  # prevent model from timing out of cache,
         }
 
         response = requests.post(
@@ -129,6 +145,14 @@ class OllamaClient:
 
 
 class WaitingClient:
+    """An LLM client that you can overlay on top of another `LLMClient` to
+    prevent interruptions while waiting for a response.
+
+    This is useful if you want to use a slow LLM that might take a while to
+    respond, and you don't want to overwhelm the LLM with requests while it's
+    thinking.
+    """
+
     def __init__(self, delegate: LLMClient):
         self._delegate = delegate
         self._lock = threading.Lock()
@@ -139,12 +163,14 @@ class WaitingClient:
     ) -> LLMResponse:
         if not self._lock.acquire(blocking=False):
             print("Already waiting for LLM response, skipping new request")
-            return LLMResponse("""{
-                "code": "",
-                "message": "Ignoring event, I'm already busy thinking",
-            }""",
-            {},
-        )
+            return LLMResponse(
+                textwrap.dedent("""
+                {
+                    "code": "",
+                    "message": "Ignoring event, I'm already busy thinking",
+                }"""),
+                {},
+            )
 
         try:
             return self._delegate.get_chat_completion(messages)
@@ -152,7 +178,13 @@ class WaitingClient:
             self._lock.release()
 
 
-def parse_action_from_response(response: LLMResponse) -> dict[str, Any]:
+def parse_action_from_response(response: LLMResponse) -> OnEventResponse:
+    """Parses the content from an LLM response into an `OnEventResponse` object.
+
+    This is a helper function that attempts to extract the `code` and `message`
+    from the LLM response. If the content is not valid JSON, it raises an
+    `LLMError`.
+    """
     content = response.content
     if not content:
         raise LLMError(
@@ -166,24 +198,20 @@ def parse_action_from_response(response: LLMResponse) -> dict[str, Any]:
     end = content.rfind("}") + 1
     content_to_parse = content[start:end]
     if not content_to_parse:
-        raise LLMError(
-            "Unable to parse JSON from LLM response",
-            f"Received: {content}",
-            content
-        )
+        raise LLMError("Unable to parse JSON from LLM response", f"Received: {content}", content)
 
     # Parse the content string as JSON and extract the code and message
     try:
         json_content = json.loads(content_to_parse)
-        action = {
-            "code": json_content.get("code", ""),
-            "message": json_content.get("message", "")
-        }
+        action = OnEventResponse(
+            code=json_content.get("code", ""),
+            message=json_content.get("message", ""),
+        )
         return action
 
     except Exception as e:
         raise LLMError(
             "Unable to parse JSON from LLM response",
             f"Unable to parse JSON from LLM response for content: {content_to_parse} with error: {e}",
-            content
+            content,
         ) from e
