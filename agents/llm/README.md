@@ -25,7 +25,7 @@ The agent will start on port 1500 with a tunnel setup to access it from the inte
 
 ## Configuration
 
-- `PERSONA`: Define the agent's personality
+- `PERSONALITY_PROMPT`: Define the agent's personality
 - `MODEL`: Select the LLM model (default: google/gemini-2.0-flash-001)
 - `DELAY_AFTER_ACTION`: Adjust action delay in milliseconds
 

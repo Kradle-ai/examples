@@ -13,9 +13,9 @@ from prompts import config
 
 load_dotenv()
 
-# Let's define a model and persona for our agent
+# Let's define a model and personality for our agent
 MODEL = "google/gemini-2.0-flash-001" # refer to https://openrouter.ai/models for all available models
-PERSONA = "you are a cool resourceful agent. you really want to achieve the task that has been given to you." # check out some other personas in prompts/config.py
+PERSONALITY_PROMPT = "you are a cool resourceful agent. you really want to achieve the task that has been given to you." # check out some other personalities in prompts/config.py
 
 # Username of the agent in kradle (eg. kradle.ai/<my-username>/agents/<my-agent-username>). Will be created if it doesn't exist.
 USERNAME = "python1"
@@ -35,8 +35,8 @@ class BaseLLMAgent(MinecraftAgent):
     # reloading of the values above.
 
     @classproperty
-    def persona(cls):
-        return PERSONA
+    def personality_prompt(cls):
+        return PERSONALITY_PROMPT
 
     @classproperty
     def model(cls):
@@ -165,9 +165,9 @@ class BaseLLMAgent(MinecraftAgent):
         prompt = prompt.replace("$EXAMPLES", str(config.coding_examples))
         system_prompt.append({"role": "system", "content": prompt})
 
-        # Persona prompt
-        prompt = config.persona_prompt
-        prompt = prompt.replace("$PERSONA", type(self).persona)
+        # Personality prompt
+        prompt = config.personality_prompt
+        prompt = prompt.replace("$PERSONALITY_PROMPT", type(self).personality_prompt)
         system_prompt.append({"role": "system", "content": prompt})
 
         return system_prompt
