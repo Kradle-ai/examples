@@ -97,7 +97,7 @@ def setup(kradle: Kradle) -> Agent:
     def init(challenge: ChallengeInfo, context: Context):
         # Use the OpenRouter client to make API calls to the LLM. There are
         # other clients available, see llm_clients.py for more.
-        context["client"] = OpenRouterClient(context.config["model"], kradle.api)
+        context["client"] = OpenRouterClient(context["model"], kradle.api)
 
         # Keep track of the conversation history with the LLM.
         context["history"] = []
@@ -134,7 +134,7 @@ def setup(kradle: Kradle) -> Agent:
                 record_result(llm_prompt, response, None, context)
                 return {
                     **action,
-                    "delay": context.config["delay_after_action"],
+                    "delay": context["delay_after_action"],
                 }
             except Exception as e:
                 print(f"Error: {message_with_details(e)}")
@@ -145,7 +145,7 @@ def setup(kradle: Kradle) -> Agent:
         return {
             "code": "",
             "message": "I'm sorry, I'm having trouble generating a response. Please try again later.",
-            "delay": context.config["delay_after_action"],
+            "delay": context["delay_after_action"],
         }
 
     return agent
@@ -173,7 +173,7 @@ def format_llm_prompt(observation: Observation, context: Context) -> Messages:
     See https://openrouter.ai/docs/api-reference/chat-completion."""
 
     challenge = context.challenge_info
-    personality_prompt = context.config["personality_prompt"]
+    personality_prompt = context["personality_prompt"]
     history = context["history"]
     result = [
         *format_system_prompt(challenge, observation),
@@ -325,7 +325,7 @@ def log_result(llm_prompt: Messages, response: Optional[str], context: Context) 
     """
     message = {
         "prompt": truncate_prompt(llm_prompt),
-        "model": context.config["model"],
+        "model": context["model"],
         "response": response,
     }
 
