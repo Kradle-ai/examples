@@ -37,7 +37,7 @@ class BaseLLMAgent(MinecraftAgent):
     @classproperty
     def persona(cls):
         return PERSONA
-    
+
     @classproperty
     def model(cls):
         return MODEL
@@ -45,7 +45,7 @@ class BaseLLMAgent(MinecraftAgent):
     @classproperty
     def username(cls):
         return USERNAME
-    
+
     @classproperty
     def display_name(cls):
         return cls.username + " (llm)"  # display name of the agent
@@ -75,7 +75,7 @@ class BaseLLMAgent(MinecraftAgent):
         if self.memory.openrouter_api_key is None or len(self.memory.openrouter_api_key) < 20:
             human = self._internal_api_client.humans.get()
             self.memory.openrouter_api_key = human["openRouterKey"]
-        
+
         # Log initialization info to console
         print(f"Initializing agent for participant ID: {self.participant_id} with username: {self.username}")
         print(f"Task: {self.memory.task}")
@@ -91,7 +91,7 @@ class BaseLLMAgent(MinecraftAgent):
 
         # Format the observation for the LLM
         observation_summary = self._format_observation(observation)
-        
+
         print(f"\033[91m########################################################")
         print(f"\nObservation Summary:\n{observation_summary}")
         print(f"\033[91m########################################################\033[0m")
@@ -112,17 +112,17 @@ class BaseLLMAgent(MinecraftAgent):
             if observation.inventory
             else "None"
         )
-        
+
         # Return string with everything the LLM needs to know about the state of the game
         formatted_output = (
             f"Event received: {observation.event if observation.event else 'None'}\n\n"
             f"Command Output:\n{observation.output if observation.output else 'Output: None'}\n\n"
             f"Position: {observation.position}\n\n"
         )
-        
+
         if observation.chat_messages:
             formatted_output += f"Latest Chat: {observation.chat_messages}\n\n"
-            
+
         formatted_output += (
             f"Visible Players: {', '.join(observation.players) if observation.players else 'None'}\n\n"
             f"Visible Blocks: {', '.join(observation.blocks) if observation.blocks else 'None'}\n\n"
@@ -130,7 +130,7 @@ class BaseLLMAgent(MinecraftAgent):
             f"Inventory: {inventory_summary}\n\n"
             f"Health: {observation.health * 100}/100"
         )
-        
+
         return formatted_output
 
     # Builds the system prompt for the agent
@@ -142,7 +142,7 @@ class BaseLLMAgent(MinecraftAgent):
         prompt = prompt.replace("$NAME", observation.name)
         prompt = prompt.replace("$TASK", self.memory.task)
         prompt = prompt.replace("$AGENT_MODE", str(self.memory.agent_modes))
-        
+
         if self.memory.agent_modes["mcmode"] == "creative":
             prompt = prompt.replace("$CREATIVE_MODE", config.creative_mode_prompt)
         else:
@@ -171,7 +171,7 @@ class BaseLLMAgent(MinecraftAgent):
         system_prompt.append({"role": "system", "content": prompt})
 
         return system_prompt
-        
+
     # Build prompt from conversation transcript so agent has historical context on past interactions
     def _build_history_prompt(self):
         return self.memory.llm_transcript[-5:] # last 5 messages from the conversation history
@@ -196,7 +196,7 @@ class BaseLLMAgent(MinecraftAgent):
             "messages": llm_prompt,
             "require_parameters": True,
         }
-        
+
         # Make LLM request
         response = self._make_llm_request(json_payload)
 
@@ -215,8 +215,8 @@ class BaseLLMAgent(MinecraftAgent):
         # Return action if successful
         if success:
             return {
-                "code": action["code"], 
-                "message": action["message"], 
+                "code": action["code"],
+                "message": action["message"],
                 "delay": self.memory.delay_after_action
             }
         else:
@@ -225,12 +225,12 @@ class BaseLLMAgent(MinecraftAgent):
 
             # We didn't succeed, so add the error message to the transcript and retry
             self.memory.llm_transcript.append({
-                "role": "system", 
+                "role": "system",
                 "content": f"your last response was not valid because: {error_message}"
             })
 
             return self.__generate_llm_agent_action(observation_summary, observation, max_retries - 1)
-    
+
     # Make a request to the LLM API, defaults to OpenRouter (override for other LLM providers)
     def _make_llm_request(self, json_payload):
         json_payload["response_format"] = JSON_RESPONSE_FORMAT
@@ -246,7 +246,7 @@ class BaseLLMAgent(MinecraftAgent):
     def _extract_content_from_response(self, response):
         if "choices" in response and response["choices"]:
             return response["choices"][0]["message"]["content"]
-        
+
         print(f"Cannot parse response from LLM: {response}")
         return ""
 
@@ -256,7 +256,7 @@ class BaseLLMAgent(MinecraftAgent):
         content = ""
         action = {"code": "", "message": ""}
         error_message = ""
-        
+
         try:
             content = self._extract_content_from_response(response)
             if not content:
@@ -281,13 +281,13 @@ class BaseLLMAgent(MinecraftAgent):
                     "message": json_content.get("message", "")
                 }
                 success = True # Success! Let's return the action
-                return content, action, success, error_message    
-                
+                return content, action, success, error_message
+
             except Exception as e:
                 print(f"Unable to parse JSON from LLM response for content: {content_to_parse} with error: {e}")
                 error_message = "Unable to parse JSON from LLM response"
                 return content, action, success, error_message
-            
+
         except Exception as e:
             print(f"Unexpected error processing LLM response: {e}")
             error_message = f"Error processing LLM response: {str(e)}"
@@ -304,7 +304,7 @@ class BaseLLMAgent(MinecraftAgent):
         return truncated_prompt
 
 # Finally, lets serve our agent!
-if __name__ == "__main__":    
+if __name__ == "__main__":
     # Create a web server and SSH tunnel for a stable public URL
     app, connection_info = AgentManager.serve(BaseLLMAgent, create_public_url=True)
     print(f"Started agent, now reachable at URL: {connection_info}", flush=True)

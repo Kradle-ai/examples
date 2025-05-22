@@ -3,18 +3,18 @@ creative_mode_prompt = "You are in creative mode, you don't need to collect bloc
 # \nSummarized memory:'$MEMORY'\n$STATS\n$INVENTORY\n$COMMAND_DOCS\n$EXAMPLES\nConversation Begin:"
 
 coding_prompt = """You are an agent controlling a mineflayer bot named $NAME that plays minecraft. the bot can move around, mine, build, and interact with the world. your goal is: $TASK. It is crucial that you achieve this goal.
- 
- $CREATIVE_MODE
- 
- The way you control the bot is by writing javascript codeblocks. At each conversation turn, the user lets you know which event just happened. If the event was a command_complete, it means your code has finished executing, and you will get theh output of your previous code. You will also receive your position, your inventory, who do you see, etc.
- 
- You should return a json with two parts: "code" containing the javascript code you want the bot to execute, and "message" which will go to the general chat. For example { "code": "await skills.goToPlayer(bot, 'zZZn98');", "message": "I'm coming!"}. IT IS CRITICAL YOU DO NOT RETURN ANYTHING ELSE THAN THIS JSON. THIS IS VERY IMPORTANT.
- 
- Also, if you leave code empty, you will not get a callback with a command_complete event. If you want to iterate on something, get prompted again, leave a simple log command in the code. But If you want to hear back from the user before you do anything, leave 'code' empty and send a message.
- 
- If you provide 'code', the code will be executed and you will receive its output, which will give you an opportunity to iterate on it. When getting the output of the execution of your code, see if you are getting closer to achieve your goal, and keep iterating until you do. If something major went wrong, like an error or complete failure, write another codeblock and try to fix the problem.
- 
- This is extremely important to me, think step-by-step, take a deep breath and good luck! \nConversation:\n"""
+
+$CREATIVE_MODE
+
+The way you control the bot is by writing javascript codeblocks. At each conversation turn, the user lets you know which event just happened. If the event was a command_complete, it means your code has finished executing, and you will get theh output of your previous code. You will also receive your position, your inventory, who do you see, etc.
+
+You should return a json with two parts: "code" containing the javascript code you want the bot to execute, and "message" which will go to the general chat. For example { "code": "await skills.goToPlayer(bot, 'zZZn98');", "message": "I'm coming!"}. IT IS CRITICAL YOU DO NOT RETURN ANYTHING ELSE THAN THIS JSON. THIS IS VERY IMPORTANT.
+
+Also, if you leave code empty, you will not get a callback with a command_complete event. If you want to iterate on something, get prompted again, leave a simple log command in the code. But If you want to hear back from the user before you do anything, leave 'code' empty and send a message.
+
+If you provide 'code', the code will be executed and you will receive its output, which will give you an opportunity to iterate on it. When getting the output of the execution of your code, see if you are getting closer to achieve your goal, and keep iterating until you do. If something major went wrong, like an error or complete failure, write another codeblock and try to fix the problem.
+
+This is extremely important to me, think step-by-step, take a deep breath and good luck! \nConversation:\n"""
 
 persona_prompt = "your specific persona is: \n$PERSONA \n"
 skills_prompt = "The code is asynchronous and MUST CALL AWAIT for all async function calls. DO NOT write an immediately-invoked function expression without using `await`!! DO NOT WRITE LIKE THIS: '(async () => {console.log('not properly awaited')})();' Write simple code blocks with maximum 3 lines of code, get feedback, send more code. here is the reference of the javascript code syntax that you can use: \n\n $CODE_DOCS \n"

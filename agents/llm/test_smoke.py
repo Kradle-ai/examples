@@ -2,7 +2,6 @@
 
 from agent_manager_mock import AgentManagerMock
 from base_llm_agent import BaseLLMAgent
-from llm_agent import create_llm_agent_class
 from samples.sample_data import SAMPLE_INIT_DATA, SAMPLE_EVENT_INITIAL_STATE, SAMPLE_EVENT_COMMAND_EXECUTED_ERROR
 
 def test_code_contains_await(event, event_name):
@@ -27,4 +26,4 @@ event2 = agent_test_manager.handle_event(SAMPLE_EVENT_COMMAND_EXECUTED_ERROR)
 # Test event2
 test_code_contains_await(event2, "event2")
 
-print("================================================") 
+print("================================================")

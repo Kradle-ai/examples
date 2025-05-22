@@ -21,7 +21,7 @@ def create_llm_agent_class(agent_config=None):
     agent_config["model"] = agent_config.get('model', DEFAULT_MODEL)
     agent_config["persona"] = agent_config.get('persona', DEFAULT_PERSONA)
     agent_config["llm_provider"] = agent_config.get('llm_provider', DEFAULT_LLM_PROVIDER)
-    
+
     # Extends the BaseLLMAgent class to add support for Ollama
     class CustomLLMAgent(BaseLLMAgent):
         # Use the config values as class attributes
@@ -41,9 +41,9 @@ def create_llm_agent_class(agent_config=None):
             self.memory.llm_provider = self.config.get('llm_provider')
             self.memory.delay_after_action = self.config.get('delay_after_action', self.memory.delay_after_action)
             self.memory.history_num_conversation_turns = self.config.get('history_num_conversation_turns', None)
-            
+
             return response
-        
+
         # Override the _make_llm_request method to add Ollama support
         def _make_llm_request(self, json_payload):
             # Skip if we're already waiting for an LLM response
@@ -71,7 +71,7 @@ def create_llm_agent_class(agent_config=None):
                 self.memory.wait_for_llm = False
 
             return response
-        
+
         # Override the _extract_content_from_response method to handle Ollama responses
         def _extract_content_from_response(self, response):
             if self.memory.llm_provider == "ollama":
@@ -96,7 +96,7 @@ def create_llm_agent_class(agent_config=None):
                 print("---" + p["role"] + "---")
                 print(p["content"])
             print("---END PROMPT---")
-    
+
     return CustomLLMAgent
 
 # Create the default LLMAgent class for backward compatibility
@@ -104,4 +104,4 @@ if __name__ == "__main__":
     LLMAgent = create_llm_agent_class()
     # Create a web server and an SSH tunnel
     app, connection_info = AgentManager.serve(LLMAgent, create_public_url=True)
-    print(f"Started agent, now reachable at URL: {connection_info}", flush=True) 
+    print(f"Started agent, now reachable at URL: {connection_info}", flush=True)
