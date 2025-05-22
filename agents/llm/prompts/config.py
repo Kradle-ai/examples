@@ -45,7 +45,7 @@ good luck!
 Conversation:
 """
 
-persona_prompt = "your specific persona is: \n$PERSONA\n"
+personality_prompt = "your specific personality is: \n$PERSONALITY_PROMPT\n"
 
 skills_prompt = """
 The code is asynchronous and MUST CALL AWAIT for all async function calls.

@@ -10,7 +10,7 @@ load_dotenv()
 # Default configuration settings
 DEFAULT_USERNAME = os.getenv("USERNAME") or "python-llm-agent" # this must be different for each agent class
 DEFAULT_MODEL = os.getenv("MODEL") or "google/gemini-2.0-flash-001"  # refer to https://openrouter.ai/models for all available models
-DEFAULT_PERSONA = "you are a cool resourceful agent. you really want to achieve the task that has been given to you."
+DEFAULT_PERSONALITY_PROMPT = "you are a cool resourceful agent. you really want to achieve the task that has been given to you."
 DEFAULT_LLM_PROVIDER = os.getenv("LLM_PROVIDER") or "openrouter"
 
 # Factory method to create LLMAgent classes with custom configuration
@@ -19,7 +19,7 @@ def create_llm_agent_class(agent_config=None):
     agent_config = agent_config or {}
     agent_config["username"] = agent_config.get('username', DEFAULT_USERNAME)
     agent_config["model"] = agent_config.get('model', DEFAULT_MODEL)
-    agent_config["persona"] = agent_config.get('persona', DEFAULT_PERSONA)
+    agent_config["personality_prompt"] = agent_config.get('personality_prompt', DEFAULT_PERSONALITY_PROMPT)
     agent_config["llm_provider"] = agent_config.get('llm_provider', DEFAULT_LLM_PROVIDER)
 
     # Extends the BaseLLMAgent class to add support for Ollama
@@ -35,7 +35,7 @@ def create_llm_agent_class(agent_config=None):
             response = super().init_participant(challenge_info)
 
             self.memory.model = self.config.get('model')
-            self.memory.persona = self.config.get('persona')
+            self.memory.personality_prompt = self.config.get('personality_prompt')
 
             # Set additional configuration
             self.memory.llm_provider = self.config.get('llm_provider')

@@ -173,11 +173,11 @@ def format_llm_prompt(observation: Observation, context: Context) -> Messages:
     See https://openrouter.ai/docs/api-reference/chat-completion."""
 
     challenge = context.challenge_info
-    persona = context.config["personality_prompt"]
+    personality_prompt = context.config["personality_prompt"]
     history = context["history"]
     result = [
         *format_system_prompt(challenge, observation),
-        {"role": "system", "content": substitute(config.persona_prompt, persona=persona)},
+        {"role": "system", "content": substitute(config.personality_prompt, personality_prompt=personality_prompt)},
         *format_history_prompt(history),
         {"role": "user", "content": format_observation(observation)},
     ]
