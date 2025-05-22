@@ -177,7 +177,7 @@ def format_llm_prompt(observation: Observation, context: Context) -> Messages:
     history = context["history"]
     result = [
         *format_system_prompt(challenge, observation),
-        {"role": "system", "content": substitute(config.personality_prompt, personality_prompt=personality_prompt)},
+        {"role": "system", "content": substitute(config.personality_prompt, PERSONALITY_PROMPT=personality_prompt)},
         *format_history_prompt(history),
         {"role": "user", "content": format_observation(observation)},
     ]
