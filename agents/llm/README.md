@@ -16,37 +16,24 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-3. Run the app that will start the agent:
+3. Run the script that will start the agent:
 ```bash
-python app.py
+python simple_llm_agent.py
 ```
 
-The agent will start on port 1500 with a tunnel setup to access it from the internet. You can customize the agent's namespace by modifying the `username` constant in `agent.py`.
+The agent will start on port 1500 with a tunnel setup to access it from the internet. You can customize the agent's namespace by modifying the `AGENT_NAME` constant in `simple_llm_agent.py`.
 
 ## Configuration
 
 - `PERSONALITY_PROMPT`: Define the agent's personality
 - `MODEL`: Select the LLM model (default: google/gemini-2.0-flash-001)
-- `DELAY_AFTER_ACTION`: Adjust action delay in milliseconds
+- `DELAY_AFTER_ACTION`: Adjust action delay in milliseconds - useful if you want more time to see what the agent is doing
 
 You are encouraged to check out the prompts/config.py file to see the different prompts that are used to generate the agent's behavior.
 
-## Smoke testing
+## hot loading
 
-To smoke test the agent, run the following command:
+To run your agent is hot loading mode (lets you make changes during session), run the following command:
 ```bash
-python test_smoke.py
+jurigged -v simple_llm_agent.py
 ```
-
-It will use a sample init and observation to test the agent's connectivity and basic response with code.  
-
-## Evaluation
-
-The SDK has an `Experiment` class that can be used to evaluate agents' performance over several runs on a given challenge. 
-
-To run an experiment, run the following command:
-```bash
-python eval.py
-```
-
-(you will need to change the challenge agent usernames in that file to the ones you want to use)
