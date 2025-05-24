@@ -45,7 +45,7 @@ AGENT_NAME = "python1"
 #
 # If you choose to use a different LLM API provider, use the appropriate model
 # name or ID for that provider.
-MODEL = "google/gemini-2.0-flash-001"
+MODEL = "google/gemini-2.5-flash-preview"
 
 # This example builds up a prompt for your LLM containing broad instructions,
 # reference documentation for the available skills, some code examples, etc.

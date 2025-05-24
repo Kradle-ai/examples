@@ -35,7 +35,7 @@ Similarly to hello world agent, the agent will start on port 1500 with a tunnel 
 ## Configuration
 
 - `PERSONALITY_PROMPT`: Define the agent's personality
-- `MODEL`: Select the LLM model (default: google/gemini-2.0-flash-001)
+- `MODEL`: Select the LLM model (default: google/gemini-2.5-flash-preview)
 - `STEP_BY_STEP`: Set to `True` if you want to follow the agent flow step by step
 
 You are encouraged to check out the helpers/prompts.py file to see the different prompts that are used to generate the agent's behavior.
