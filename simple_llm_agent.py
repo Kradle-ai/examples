@@ -6,7 +6,7 @@ from kradle import Agent, Context, Kradle, OnEventResponse
 from kradle.models import ChallengeInfo, MinecraftEvent, Observation
 from typing_extensions import TypeAlias
 
-from llm_clients import (
+from helpers.llm_clients import (
     LLMClient,
     LLMError,
     LLMResponse,
@@ -14,7 +14,7 @@ from llm_clients import (
     message_with_details,
     parse_action_from_response,
 )
-from prompts import config
+from helpers import prompts
 
 """
 An example of a Minecraft-playing agent based on communication with an LLM.
@@ -57,6 +57,9 @@ MODEL = "google/gemini-2.0-flash-001"
 # Note: this is just a feature of this example and is not required for your
 # agents if you don't want it.
 PERSONALITY_PROMPT = "you are a cool resourceful agent. you really want to achieve the task that has been given to you."
+
+# Whether you want step-by-step execution to see what the agent is doing
+STEP_BY_STEP = False
 
 # This adds a delay (in milliseconds) after an action is performed. Increase
 # this if the agent is too fast or if you want more time to see the agent's
@@ -102,6 +105,10 @@ def setup(kradle: Kradle) -> Agent:
         # Keep track of the conversation history with the LLM.
         context["history"] = []
 
+        print_highlighted(f"We just got added as a participant to this challenge:\n{challenge.task}")
+
+        wait_for_input()
+
     # Aside from init, the system will then generate `Observation` objects for
     # your agent to process. You register interest in certain events by using
     # `@agent.event` decorator.
@@ -132,12 +139,21 @@ def setup(kradle: Kradle) -> Agent:
                 response = client.get_chat_completion(llm_prompt)
                 action = parse_action_from_response(response)
                 record_result(llm_prompt, response, None, context)
+
+                print_highlighted("Step 3: we got this back from LLM, forwarding to Kradle")
+                print(f"\n{action}")
+
+                wait_for_input()
+
                 return {
                     **action,
                     "delay": context["delay_after_action"],
                 }
             except Exception as e:
                 print(f"Error: {message_with_details(e)}")
+        
+                wait_for_input()
+
                 record_result(llm_prompt, response, e, context)
                 continue
 
@@ -177,7 +193,7 @@ def format_llm_prompt(observation: Observation, context: Context) -> Messages:
     history = context["history"]
     result = [
         *format_system_prompt(challenge, observation),
-        {"role": "system", "content": substitute(config.personality_prompt, PERSONALITY_PROMPT=personality_prompt)},
+        {"role": "system", "content": substitute(prompts.personality_prompt, PERSONALITY_PROMPT=personality_prompt)},
         *format_history_prompt(history),
         {"role": "user", "content": format_observation(observation)},
     ]
@@ -192,7 +208,7 @@ def format_system_prompt(challenge: ChallengeInfo, observation: Observation) -> 
 
     # Tell the LLM which Minecraft mode it's playing in.
     if challenge.agent_modes["mcmode"] == "creative":
-        creative_mode = config.creative_mode_prompt
+        creative_mode = prompts.creative_mode_prompt
     else:
         creative_mode = "You are in survival mode."
 
@@ -200,7 +216,7 @@ def format_system_prompt(challenge: ChallengeInfo, observation: Observation) -> 
         # The coding prompt gives the LLM high-level instructions about the
         # problem it needs to solve.
         substitute(
-            config.coding_prompt,
+            prompts.coding_prompt,
             NAME=observation.name,
             TASK=challenge.task,
             AGENT_MODE=challenge.agent_modes,
@@ -208,12 +224,12 @@ def format_system_prompt(challenge: ChallengeInfo, observation: Observation) -> 
         ),
         # The skills prompt gives the LLM code documentation about the available
         # commands.
-        substitute(config.skills_prompt, CODE_DOCS=challenge.js_functions),
+        substitute(prompts.skills_prompt, CODE_DOCS=challenge.js_functions),
         # Minecraft modes (creative, self_preservation, etc) available in
         # the challenge
-        substitute(config.agent_prompt, AGENT_MODE=challenge.agent_modes),
+        substitute(prompts.agent_prompt, AGENT_MODE=challenge.agent_modes),
         # The examples prompt gives the LLM examples of code it could generate.
-        substitute(config.examples_prompt, EXAMPLES=config.coding_examples),
+        substitute(prompts.examples_prompt, EXAMPLES=prompts.coding_examples),
     ]
 
     return [{"role": "system", "content": message} for message in result]
@@ -275,17 +291,29 @@ def show_heading(llm_prompt: Messages, attempt: int) -> None:
     """
     Prints a big blocky heading to the console to indicate the start of an LLM call.
     """
+
     if attempt == 0:
-        print(f"\033[91m########################################################")
-        print(f"\nObservation Summary:\n{llm_prompt[-1]['content']}")
-        print(f"\033[91m########################################################\033[0m")
+        print_highlighted("Step 1: Received Observation:")
+        print(f"\n{llm_prompt[-1]['content']}")
     else:
-        print(f"\033[91m########################################################")
-        print(f"\033[91mRetrying LLM response for the {attempt + 1} time\033[0m")
-        print(f"\033[91m########################################################\033[0m")
+        print_highlighted(f"Retrying LLM response for the {attempt + 1} time")
 
-    print(f"LLM Prompt: {llm_prompt}")
+    wait_for_input()
 
+    print_highlighted("Step 2: Sending this LLM Prompt to the LLM:")
+    truncated_prompt = truncate_prompt(llm_prompt)
+    for message in truncated_prompt:
+        print(f"\033[1m{message['role']}\033[0m: {message['content']}")
+
+    wait_for_input()
+
+def print_highlighted(text: str) -> None:
+    """
+    Prints text in a highlighted color.
+    """
+    print(f"\033[91m########################################################")
+    print(f"{text}")
+    print(f"\033[91m########################################################\033[0m")
 
 def record_result(
     llm_prompt: Messages,
@@ -347,6 +375,14 @@ def truncate_prompt(prompt: Messages, length: int = 2000) -> Messages:
         truncated_prompt.append(truncated_p)
     return truncated_prompt
 
+def wait_for_input() -> None:
+    if not STEP_BY_STEP:
+        return
+
+    """
+    Waits for the user to press Enter before continuing.
+    """
+    input(f"\033[92mPress Enter to continue...\033[0m")
 
 if __name__ == "__main__":
     load_dotenv()
@@ -354,4 +390,3 @@ if __name__ == "__main__":
     kradle = Kradle(create_public_url=True, debug=True)
     agent = setup(kradle)
     app, connection_info = agent.serve()
-    print(f"Started agent, now reachable at URL: {connection_info}", flush=True)
