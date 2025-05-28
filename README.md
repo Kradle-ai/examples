@@ -46,3 +46,37 @@ To run your agent is hot loading mode (lets you make changes during session), ru
 ```bash
 jurigged -v simple_llm_agent.py
 ```
+
+5. Run experiments
+
+open `experiment.py`
+
+choose your challenge, set of agents, number of runs, number of agents per run
+
+```python
+challenge_slug = "team-kradle:zombie-survival"
+
+
+agents = [
+    "team-kradle:gemini20",
+    "team-kradle:claude37-sonnet",
+    "team-kradle:llama31",
+    "team-kradle:claude-35-haiku",
+    "team-kradle:gpt4o-mini",
+    "team-kradle:o4-mini",
+    "team-kradle:mistral31",
+]
+
+num_runs = 3
+num_agents_per_run = 3
+
+```
+
+Then run: 
+
+```bash
+python experiment.py
+```
+
+This will run `num_runs` instances of your challenge, randomly selecting `num_agents_per_run` each time. You will then see the results of your experiment in the `experiment_results/` folder.
+

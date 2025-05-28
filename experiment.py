@@ -13,7 +13,7 @@ import random
 load_dotenv()
 
 
-challenge_slug = "kemal:battle-royale"
+challenge_slug = "team-kradle:zombie-survival"
 
 agents = [
     "team-kradle:gemini20",
