@@ -1,5 +1,5 @@
 from string import Template
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 from dotenv import load_dotenv
 from kradle import Agent, Context, Kradle, OnEventResponse
@@ -358,9 +358,7 @@ def log_result(llm_prompt: Messages, response: Optional[str], context: Context) 
         "response": response,
     }
 
-    # TODO(wilhuff): The type on this API is seemingly wrong
-    # ... but the old code worked. Investigate.
-    context.log(cast(str, message))
+    context.log(message)
 
 
 def truncate_prompt(prompt: Messages, length: int = 2000) -> Messages:
