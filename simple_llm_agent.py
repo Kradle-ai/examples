@@ -1,5 +1,5 @@
 from string import Template
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 from dotenv import load_dotenv
 from kradle import Agent, Context, Kradle, OnEventResponse
@@ -146,7 +146,8 @@ def setup(kradle: Kradle) -> Agent:
                 wait_for_input()
 
                 return {
-                    **action,
+                    "code": action["code"],
+                    "message": action["message"],
                     "delay": context["delay_after_action"],
                 }
             except Exception as e:
@@ -235,6 +236,15 @@ def format_system_prompt(challenge: ChallengeInfo, observation: Observation) -> 
     return [{"role": "system", "content": message} for message in result]
 
 
+def substitute(prompt: str, **kwargs) -> str:
+    """
+    Uses Python template strings to substitute variables into pre-built,
+    parameterized prompts.
+    """
+    template = Template(prompt)
+    return template.safe_substitute(**kwargs)
+
+
 def format_history_prompt(history: list[Message]) -> Messages:
     """
     Returns the last 5 messages in the conversation history to feed into the
@@ -276,15 +286,6 @@ def format_observation(observation: Observation) -> str:
     )
 
     return "\n\n".join(result)
-
-
-def substitute(prompt: str, **kwargs) -> str:
-    """
-    Uses Python template strings to substitute variables into pre-built,
-    parameterized prompts.
-    """
-    template = Template(prompt)
-    return template.safe_substitute(**kwargs)
 
 
 def show_heading(llm_prompt: Messages, attempt: int) -> None:
@@ -357,9 +358,7 @@ def log_result(llm_prompt: Messages, response: Optional[str], context: Context) 
         "response": response,
     }
 
-    # TODO(wilhuff): The type on this API is seemingly wrong
-    # ... but the old code worked. Investigate.
-    context.log(cast(str, message))
+    context.log(message)
 
 
 def truncate_prompt(prompt: Messages, length: int = 2000) -> Messages:
