@@ -1,10 +1,14 @@
+import logging
 import queue
+import textwrap
 import time
-from typing import Any, Union
+from typing import Union, Callable
+import threading
 
 from dotenv import load_dotenv
 from kradle import Agent, Context, Kradle, OnEventResponse
 from kradle.models import ChallengeInfo, MinecraftEvent, Observation
+import rich
 
 
 """
@@ -108,7 +112,8 @@ def setup(kradle: Kradle, event_queue: queue.Queue[Union[ChallengeInfo, Observat
 
     return agent
 
-if __name__ == "__main__":
+
+def main() -> None:
     load_dotenv()
 
     kradle = Kradle(create_public_url=True, debug=True)
@@ -140,8 +145,14 @@ if __name__ == "__main__":
     while True:
         # Wait just a moment to avoid commingling output with the flask server.
         time.sleep(0.1)
-        # Ask user for the code to execute
-        user_code = input("Enter the code you want to execute in Minecraft: ")
+
+        # Ask user for the code to execute with deferred logging
+        with deferred_logging:
+            try:
+                user_code = input("Enter the code you want to execute in Minecraft: ")
+            except (EOFError, KeyboardInterrupt):
+                print("Input cancelled, exiting.")
+                return
 
         print("sending code")
         response = kradle._api_client.runs.send_action(
@@ -161,3 +172,88 @@ if __name__ == "__main__":
                 print(observation.output)
             else:
                 print(f"Something went wrong and the agent is now idle.")
+
+
+class DeferredLogging:
+    """Context manager that defers logging calls during critical sections like
+    user input.
+
+    Using this prevents log lines from interfering with user input.
+    """
+
+    def __init__(self) -> None:
+        """
+        Sets up alternate logging handlers that defer logging calls while
+        self._is_deferring is set.
+        """
+        self._is_deferring = threading.Event()
+        self._deferred_calls: queue.Queue[Callable[[], None]] = queue.Queue()
+
+        outer_self = self
+
+        class HandlerWrapper(logging.Handler):
+            def __init__(self, original_handler: logging.Handler) -> None:
+                self.original_handler = original_handler
+                self.wrapped_emit = outer_self._make_deferred(original_handler.emit)
+
+            def emit(self, record: logging.LogRecord) -> None:
+                self.wrapped_emit(self.original_handler, record)
+
+        def wrap(handler: logging.Handler) -> logging.Handler:
+            return HandlerWrapper(handler)
+
+        def wrap_handlers(logger: logging.Logger) -> None:
+            logger.handlers = [wrap(h) for h in logger.handlers]
+
+        wrap_handlers(logging.root)
+        wrap_handlers(logging.getLogger("werkzeug"))
+
+        # Also defer print() calls for complete coverage
+        import builtins
+        self._original_print = builtins.print
+        builtins.print = self._make_deferred(builtins.print)
+
+        # Also defer rich.console.Console.print calls
+        self._original_console_print = rich.console.Console.print
+        rich.console.Console.print = self._make_deferred_console_print()  # type: ignore
+
+    def __enter__(self) -> None:
+        """Start deferring logging calls."""
+        self._is_deferring.set()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Stops deferring and execute all queued logging calls."""
+        self._is_deferring.clear()
+
+        # Execute all queued logging calls.
+        while True:
+            try:
+                call = self._deferred_calls.get_nowait()
+                call()
+            except queue.Empty:
+                break
+
+    def _make_deferred_console_print(self) -> Callable[..., None]:
+        """Create a deferred version of Rich Console.print."""
+
+        def unbound_print(self_console, *args, **kwargs):
+            self._original_console_print(self_console, *args, **kwargs)
+
+        return self._make_deferred(unbound_print)
+
+    def _make_deferred(self, handler: Callable[..., None]) -> Callable[..., None]:
+        def deferred_handler(*args, **kwargs):
+            if self._is_deferring.is_set():
+                self._deferred_calls.put(lambda: handler(*args, **kwargs))
+            else:
+                handler(*args, **kwargs)
+
+        return deferred_handler
+
+
+# Create a global instance
+deferred_logging = DeferredLogging()
+
+
+if __name__ == "__main__":
+    main()
