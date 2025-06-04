@@ -152,7 +152,7 @@ def setup(kradle: Kradle) -> Agent:
                 }
             except Exception as e:
                 print(f"Error: {message_with_details(e)}")
-        
+
                 wait_for_input()
 
                 record_result(llm_prompt, response, e, context)
