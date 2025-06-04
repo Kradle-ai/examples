@@ -1,5 +1,6 @@
-from typing import Any
+import queue
 import time
+from typing import Any, Union
 
 from dotenv import load_dotenv
 from kradle import Agent, Context, Kradle, OnEventResponse
@@ -34,13 +35,8 @@ CHALLENGE_SLUG = "team-kradle:open-ended"
 # This example shows how the main communication loop works
 # when the agent gets a message from the user, it responds with hello world
 
-global_context: dict[str, Any] = {
-    "challenge_started": False,
-    "is_ready": False,
-    "run_context": None
-}
 
-def setup(kradle: Kradle) -> Agent:
+def setup(kradle: Kradle, event_queue: queue.Queue[Union[ChallengeInfo, Observation]]) -> Agent:
     agent = kradle.agent(
         name=AGENT_NAME,
         # The name that will show up in the Kradle web UI.
@@ -50,8 +46,7 @@ def setup(kradle: Kradle) -> Agent:
         # Any additional configuration you want to supply to the agent. This is
         # optional, but for the sake of this example, we'll plumb through the
         # message we respond with
-        config={
-        },
+        config={},
     )
 
     # You register handlers for certain events using decorators like this. The
@@ -66,9 +61,7 @@ def setup(kradle: Kradle) -> Agent:
     def init(challenge: ChallengeInfo, context: Context):
         # storing the context in a global variable so we can access it later
         print("challenge started")
-        global global_context
-        global_context["run_context"] = context
-        global_context["challenge_started"] = True
+        event_queue.put(challenge)
 
     # Aside from init, the system will then generate `Observation` objects for
     # your agent to process. You register interest in certain events by using
@@ -78,12 +71,11 @@ def setup(kradle: Kradle) -> Agent:
     # repeatedly to your event handler.
 
     @agent.event(
-        MinecraftEvent.INITIAL_STATE, #listen to chat messages
+        MinecraftEvent.INITIAL_STATE,  # listen for startup.
     )
     def on_initial_state(observation: Observation, context: Context) -> OnEventResponse:
-        print("received initial state message")
-        global global_context
-        global_context["is_ready"] = True
+        print("received initial state")
+        event_queue.put(observation)
         return {
             "code": "",
             "message": "",
@@ -91,14 +83,23 @@ def setup(kradle: Kradle) -> Agent:
         }
 
     @agent.event(
-        MinecraftEvent.COMMAND_EXECUTED, #listen to execution results
+        MinecraftEvent.COMMAND_EXECUTED,  # listen to execution results
     )
     def on_command_executed(observation: Observation, context: Context) -> OnEventResponse:
-        # we just respond with the message from the config
-        print("received command result")
-        print(observation.output)
-        global global_context
-        global_context["is_ready"] = True
+        print("received command executed")
+        event_queue.put(observation)
+        return {
+            "code": "",
+            "message": "",
+            "delay": 0,
+        }
+
+    @agent.event(
+        MinecraftEvent.IDLE,
+    )
+    def on_idle(observation: Observation, context: Context) -> OnEventResponse:
+        print("received idle")
+        event_queue.put(observation)
         return {
             "code": "",
             "message": "",
@@ -111,7 +112,8 @@ if __name__ == "__main__":
     load_dotenv()
 
     kradle = Kradle(create_public_url=True, debug=True)
-    agent = setup(kradle)
+    event_queue: queue.Queue[Union[ChallengeInfo, Observation]] = queue.Queue()
+    agent = setup(kradle, event_queue)
     app, connection_info = agent.serve()
 
     # now start a run
@@ -122,28 +124,40 @@ if __name__ == "__main__":
             {
                 "agent": AGENT_NAME
             }
-        ] 
+        ]
     )
 
+    print("waiting for challenge to start...")
+    challenge = event_queue.get()
+    assert isinstance(challenge, ChallengeInfo)
+    print(textwrap.fill(f"Challenge started for task: {challenge.task}"))
+
+    observation = event_queue.get()
+    assert isinstance(observation, Observation)
+    assert observation.event == MinecraftEvent.INITIAL_STATE.value
+    print("received initial state")
+
     while True:
-        time.sleep(1)
-        if not global_context["challenge_started"]:
-            print("waiting for challenge to start...")
-            
-        if global_context["is_ready"] and global_context["run_context"]:
-            print("sending code")
-            run_context = global_context["run_context"]
-            global_context["is_ready"] = False
+        # Wait just a moment to avoid commingling output with the flask server.
+        time.sleep(0.1)
+        # Ask user for the code to execute
+        user_code = input("Enter the code you want to execute in Minecraft: ")
 
-            # Ask user for the code to execute
-            user_code = input("Enter the code you want to execute in Minecraft: ")
+        print("sending code")
+        response = kradle._api_client.runs.send_action(
+            run_id = challenge.run_id,
+            participant_id = challenge.participant_id,
+            action = {
+                "message": "coding",
+                "code": user_code
+            }
+        )
+        print(response)
 
-            response = kradle._api_client.runs.send_action(
-                run_id = run_context.run_id,
-                participant_id = run_context.participant_id,
-                action = {
-                    "message": "coding",
-                    "code": user_code
-                }
-            )
-            print(response)
+        print("waiting for execution result...")
+        observation = event_queue.get()
+        if isinstance(observation, Observation):
+            if observation.event == MinecraftEvent.COMMAND_EXECUTED.value:
+                print(observation.output)
+            else:
+                print(f"Something went wrong and the agent is now idle.")
