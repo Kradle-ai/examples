@@ -146,7 +146,8 @@ def setup(kradle: Kradle) -> Agent:
                 wait_for_input()
 
                 return {
-                    **action,
+                    "code": action["code"],
+                    "message": action["message"],
                     "delay": context["delay_after_action"],
                 }
             except Exception as e:
