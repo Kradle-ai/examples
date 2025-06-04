@@ -4,11 +4,13 @@
 from kradle import Experiment
 from kradle.models import RunRequest
 from dotenv import load_dotenv
-from kradle import AgentManager
 from dataclasses import asdict
 import json
 import os
 import random
+from typing import Any
+from datetime import datetime
+
 
 load_dotenv()
 
@@ -55,7 +57,6 @@ experiment_results.display_results()
 # Display detailed information about each run (without showing logs)
 experiment_results.display_runs(show_logs=False)
 
-from datetime import datetime
 # create the experiment_results directory if it doesn't exist
 if not os.path.exists("experiment_results"):
     os.makedirs("experiment_results")
@@ -63,7 +64,7 @@ if not os.path.exists("experiment_results"):
 file_name = f"experiment_results/results_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
 
 # Save json with logs to a file
-file_json = dict()
+file_json: dict[str, Any] = dict()
 file_json = file_json | asdict(experiment_results)
 with open(file_name, 'w') as f:
     f.write(json.dumps(file_json, indent=4, default=str))
