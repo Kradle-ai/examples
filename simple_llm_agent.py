@@ -235,6 +235,15 @@ def format_system_prompt(challenge: ChallengeInfo, observation: Observation) -> 
     return [{"role": "system", "content": message} for message in result]
 
 
+def substitute(prompt: str, **kwargs) -> str:
+    """
+    Uses Python template strings to substitute variables into pre-built,
+    parameterized prompts.
+    """
+    template = Template(prompt)
+    return template.safe_substitute(**kwargs)
+
+
 def format_history_prompt(history: list[Message]) -> Messages:
     """
     Returns the last 5 messages in the conversation history to feed into the
@@ -276,15 +285,6 @@ def format_observation(observation: Observation) -> str:
     )
 
     return "\n\n".join(result)
-
-
-def substitute(prompt: str, **kwargs) -> str:
-    """
-    Uses Python template strings to substitute variables into pre-built,
-    parameterized prompts.
-    """
-    template = Template(prompt)
-    return template.safe_substitute(**kwargs)
 
 
 def show_heading(llm_prompt: Messages, attempt: int) -> None:
