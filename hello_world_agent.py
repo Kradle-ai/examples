@@ -1,10 +1,6 @@
-from string import Template
-from typing import Any, Optional, cast
-
 from dotenv import load_dotenv
 from kradle import Agent, Context, Kradle, OnEventResponse
 from kradle.models import ChallengeInfo, MinecraftEvent, Observation
-from typing_extensions import TypeAlias
 
 
 """
@@ -46,7 +42,7 @@ def setup(kradle: Kradle) -> Agent:
         # optional, but for the sake of this example, we'll plumb through the
         # message we respond with
         config={
-            "message": "hello world!"
+            "message": "hello world!",
         },
     )
 
@@ -70,9 +66,10 @@ def setup(kradle: Kradle) -> Agent:
     # For any given participant, the same `Context` object will be passed
     # repeatedly to your event handler.
     @agent.event(
-        MinecraftEvent.CHAT, #general chat messages
+        MinecraftEvent.INITIAL_STATE,
+        MinecraftEvent.CHAT,  # general chat messages
     )
-    def event(observation: Observation, context: Context) -> OnEventResponse:
+    def on_chat(observation: Observation, context: Context) -> OnEventResponse:
         # we just respond with the message from the config
         return {
             "code": "",
@@ -81,9 +78,9 @@ def setup(kradle: Kradle) -> Agent:
         }
 
     @agent.event(
-        MinecraftEvent.MESSAGE, #direct messages from other players
+        MinecraftEvent.MESSAGE,  # direct messages from other players
     )
-    def event(observation: Observation, context: Context) -> OnEventResponse:
+    def on_message(observation: Observation, context: Context) -> OnEventResponse:
         # we just respond with the message from the config, as a direct message to the sender
         chat_message = observation.chat_messages[0]
         return {
@@ -93,6 +90,7 @@ def setup(kradle: Kradle) -> Agent:
         }
 
     return agent
+
 
 if __name__ == "__main__":
     load_dotenv()
