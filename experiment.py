@@ -36,7 +36,7 @@ for i in range(num_runs):
     # Randomly select agents for each run
     selected_agents = random.sample(agents, num_agents_per_run)
     print(f"Run {i+1}: Selected agents: {selected_agents}")
-    
+
     runs.append(RunRequest(
         challenge_slug=challenge_slug,
         participants=[{"agent": agent} for agent in selected_agents]))
