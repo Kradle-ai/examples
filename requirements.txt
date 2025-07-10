@@ -1,4 +1,4 @@
-kradle==0.6.4
+kradle==0.6.6
 jurigged==0.6.0
 watchfiles==1.0.5
 python-dotenv==1.0.1
